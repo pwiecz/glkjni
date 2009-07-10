@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<jardesc>
+    <jar path="jdemoglk/jdemoglk-0.6.jar"/>
+    <options buildIfNeeded="true" compress="true" descriptionLocation="/jdemoglk/dist.jardesc" exportErrors="true" exportWarnings="true" includeDirectoryEntries="false" overwrite="false" saveDescription="true" storeRefactorings="false" useSourceFolders="false"/>
+    <storedRefactorings deprecationInfo="true" structuralOnly="false"/>
+    <selectedProjects/>
+    <manifest generateManifest="true" manifestLocation="" manifestVersion="1.0" reuseManifest="false" saveManifest="false" usesManifest="true">
+        <sealing sealJar="false">
+            <packagesToSeal/>
+            <packagesToUnSeal/>
+        </sealing>
+    </manifest>
+    <selectedElements exportClassFiles="true" exportJavaFiles="true" exportOutputFolder="false">
+        <folder path="/jglk/doc"/>
+        <javaElement handleIdentifier="=jdemoglk/src"/>
+        <file path="/jdemoglk/README"/>
+        <file path="/jglk/COPYING"/>
+        <file path="/jglk/README.jglk"/>
+        <javaElement handleIdentifier="=jglk/src"/>
+    </selectedElements>
+</jardesc>
