@@ -1,0 +1,18 @@
+JDemoGlk: A GlkJNI-compatible Java frontend
+(c) 2009 Edward McCardell <edward.mccardell@gmail.com>
+
+JDemoGlk is a bare-bones example implementation of a Java frontend that
+can be used with GlkJNI.
+
+* Using
+
+To use JDemoGlk as the frontend for GlkJNI programs, copy the JAR file
+to a directory of your choice and pass the location as a command-line
+argument to the Glk program, like so:
+
+    glulxe -Djava.class.path=/path/to/jdemoglk.jar foo.gblorb
+    
+* License
+
+jdemoglk is copyright (c) 2009 Edward McCardell. It is released under the
+terms of the GNU General Public License, version 3.
