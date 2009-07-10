@@ -1,0 +1,17 @@
+jglk: A framework for GlkJNI-compatible Java frontends.
+(c) 2009 Edward McCardell <edward.mccardell@gmail.com>
+
+jglk contains classes and interfaces that are useful for writing
+Java frontends for use with GlkJNI.
+
+* License
+
+jglk is copyright (c) 2009 Edward McCardell. It is released under the
+terms of the GNU General Public License, version 3.
+
+* Acknowledgements
+
+jglk is designed to work the Glk API (version 0.7.0). 
+
+Glk designed by Andrew Plotkin <erkyrath@eblong.com>
+http://www.eblong.com/zarf/glk/index.html
