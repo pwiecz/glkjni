@@ -18,6 +18,11 @@
 #ifndef GLKJNI_H_
 #define GLKJNI_H_
 
+#ifdef ANDROID
+#include <setjmp.h>
+#include <android/log.h>
+#endif
+
 #include <stdlib.h>
 #include <jni.h>
 #include "glk.h"
@@ -44,9 +49,13 @@
 #define strtype_Window (2)
 #define strtype_Memory (3)
 
-/* TODO: pass to Java? */
-#define gli_strict_warning(msg)   \
+#ifdef ANDROID
+#define gli_strict_warning(msg) \
+    (__android_log_print(ANDROID_LOG_WARN, "glk", "Library error: %s\n", msg))
+#else
+#define gli_strict_warning(msg) \
     (fprintf(stderr, "Glk library error: %s\n", msg))
+#endif
 
 typedef glui32 gli_case_block_t[2]; /* upper, lower */
 /* If both are 0xFFFFFFFF, you have to look at the special-case table */
@@ -94,7 +103,7 @@ void gli_window_write_uni(winid_t win, glui32 *buf, glui32 len);
 void gli_window_putc(winid_t win, glui32 ch);
 void gli_windows_print();
 winid_t gli_window_by_id(int id);
-void gli_process_window_event(winid_t win, glui32 type, glui32 val1);
+int gli_process_window_event(winid_t win, glui32 type, glui32 val1);
 
 void gli_initialize_latin1(void);
 
@@ -106,6 +115,14 @@ gidispatch_rock_t gli_fref_get_disprock(frefid_t fref);
 void gli_fref_set_disprock(frefid_t fref);
 gidispatch_rock_t gli_schan_get_disprock(schanid_t schan);
 void gli_schan_set_disprock(schanid_t schan);
+
+void gli_exit(void);
+
+#ifdef ANDROID
+extern jmp_buf jump_error;
+#define JMP_WHOOPS 1
+#define JMP_DONE 2
+#endif
 
 #define gli_event_clearevent(evp)  \
     ((evp)->type = evtype_None,    \

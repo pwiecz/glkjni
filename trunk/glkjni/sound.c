@@ -15,6 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdio.h>
 #include <jni.h>
 #include "glk.h"
 #include "glkjni.h"
@@ -81,10 +82,12 @@ schanid_t glk_schannel_create(glui32 rock)
         return NULL;
     }
 
+    jchan = jni_new_global(jchan);
+
     schan = (schannel_t *)gli_malloc(sizeof(schannel_t));
 
     schan->rock = rock;
-    schan->jchan = jni_new_global(jchan);
+    schan->jchan = jchan;
 
     gli_schan_set_disprock(schan);
 

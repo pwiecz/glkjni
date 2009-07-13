@@ -15,6 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdio.h>
 #include <string.h>
 #include <jni.h>
 #include "glk.h"
@@ -77,7 +78,9 @@ frefid_t glk_fileref_iterate(fileref_t *fref, glui32 *rock)
 static fileref_t *gli_fileref_new(char *filename, glui32 usage,
         glui32 rock, jobject file)
 {
-    fileref_t *fref = (fileref_t *)gli_malloc(sizeof(fileref_t));
+    fileref_t *fref;
+
+    fref = (fileref_t *)gli_malloc(sizeof(fileref_t));
 
     fref->rock = rock;
 
@@ -117,16 +120,16 @@ frefid_t glk_fileref_create_temp(glui32 usage, glui32 rock)
 {
     static jstring tempPrefix;
 
-    jobject file;
+    jobject file = NULL;
     char *path;
-    fileref_t *fref;
+    fileref_t *fref = NULL;
 
     if (!tempPrefix) {
         jstring localref;
 
         localref = (*jni_env)->NewStringUTF(jni_env, "glk");
         if (!localref) {
-            jni_no_mem();
+            goto done;
         }
 
         tempPrefix = jni_new_global(localref);
@@ -135,7 +138,7 @@ frefid_t glk_fileref_create_temp(glui32 usage, glui32 rock)
     file = (*jni_env)->CallStaticObjectMethod(STATIC_M(FILE, CREATETEMP),
             tempPrefix, NULL);
     if (jni_check_exc()) {
-        goto whoops;
+        goto done;
     }
 
     (*jni_env)->CallVoidMethod(INSTANCE_M(file, FILE_DELETEONEXIT));
@@ -143,18 +146,20 @@ frefid_t glk_fileref_create_temp(glui32 usage, glui32 rock)
 
     path = jni_file_getpath(file);
     if (!path) {
-        goto whoops;
+        goto done;
     }
 
     fref = gli_fileref_register(path, usage, rock, file);
     free(path);
 
+done:
+    if (file) {
+        (*jni_env)->DeleteLocalRef(jni_env, file);
+    }
+    if (!fref) {
+        gli_strict_warning("fileref_create_temp: unable to create fileref.");
+    }
     return fref;
-
-whoops:
-    (*jni_env)->DeleteLocalRef(jni_env, file);
-    jni_warning("fileref_create_temp: unable to create fileref.");
-    return NULL;
 }
 
 frefid_t glk_fileref_create_from_fileref(glui32 usage, frefid_t oldfref,
@@ -170,50 +175,55 @@ frefid_t glk_fileref_create_from_fileref(glui32 usage, frefid_t oldfref,
     fref = gli_fileref_register(oldfref->filename, usage,
             rock, oldfref->file);
 
+    if (!fref) {
+        gli_strict_warning("fileref_create_from_fileref: unable to create fileref.");
+    }
     return fref;
 }
 
 frefid_t glk_fileref_create_by_name(glui32 usage, char *name, glui32 rock)
 {
     jstring rawname;
-    jobject file;
+    jobject file = NULL;
     char *path;
     fileref_t *fref;
 
     rawname = jni_jstrfromnative(name);
     if (!rawname) {
-        goto whoops;
+        goto done;
     }
 
     file = (*jni_env)->CallObjectMethod(GLK_M(NAMEDFILE),
             rawname, (jint)usage);
     (*jni_env)->DeleteLocalRef(jni_env, rawname);
     if (jni_check_exc() || !file) {
-        goto whoops;
+        goto done;
     }
 
     path = jni_file_getpath(file);
     if (!path) {
-        goto whoops;
+        goto done;
     }
 
     fref = gli_fileref_register(path, usage, rock, file);
     free(path);
 
+done:
+    if (file) {
+        (*jni_env)->DeleteLocalRef(jni_env, file);
+    }
+    if (!fref) {
+        gli_strict_warning("fileref_create_by_name: unable to create fileref");
+    }
     return fref;
-
-whoops:
-    (*jni_env)->DeleteLocalRef(jni_env, file);
-    jni_warning("fileref_create_by_name: unable to create fileref");
-    return NULL;
 }
 
 frefid_t glk_fileref_create_by_prompt(glui32 usage, glui32 fmode,
         glui32 rock)
 {
-    jobject file;
+    jobject file = NULL;
     char *path;
-    fileref_t *fref;
+    fileref_t *fref = NULL;
 
     if (fmode > filemode_ReadWrite && fmode != filemode_WriteAppend) {
         gli_strict_warning("fileref_create_by_prompt: invalid file mode");
@@ -223,7 +233,7 @@ frefid_t glk_fileref_create_by_prompt(glui32 usage, glui32 fmode,
     file = (*jni_env)->CallObjectMethod(GLK_M(PROMPTFILE),
             (jint)usage, (jint)fmode);
     if (jni_check_exc()) {
-        goto whoops;
+        goto done;
     }
     if (!file) {
         return NULL;
@@ -231,18 +241,20 @@ frefid_t glk_fileref_create_by_prompt(glui32 usage, glui32 fmode,
 
     path = jni_file_getpath(file);
     if (!path) {
-        goto whoops;
+        goto done;
     }
 
     fref = gli_fileref_register(path, usage, rock, file);
     free(path);
 
+done:
+    if (file) {
+        (*jni_env)->DeleteLocalRef(jni_env, file);
+    }
+    if (!fref) {
+        gli_strict_warning("fileref_create_by_prompt: unable to create fileref");
+    }
     return fref;
-
-whoops:
-    (*jni_env)->DeleteLocalRef(jni_env, file);
-    jni_warning("fileref_create_by_prompt: unable to create fileref");
-    return NULL;
 }
 
 static void gli_fileref_delete(fileref_t *fref)

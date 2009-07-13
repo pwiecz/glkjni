@@ -18,6 +18,8 @@
 #ifndef STREAM_H_
 #define STREAM_H_
 
+#include <stdio.h>
+
 typedef struct mstream_data_struct mstream_data_t;
 typedef struct fstream_data_struct fstream_data_t;
 

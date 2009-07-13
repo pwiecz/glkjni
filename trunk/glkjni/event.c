@@ -15,21 +15,35 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdio.h>
 #include <jni.h>
 #include "glk.h"
 #include "glkjni.h"
 #include "jcall.h"
 
-static void gli_process_event(event_t *event, glui32 type, glui32 id,
+static jint gli_timer_interval;
+
+static int gli_process_event(event_t *event, glui32 type, glui32 id,
         glui32 val1, glui32 val2)
 {
     winid_t win;
 
     if (id) {
         win = gli_window_by_id(id);
-        gli_process_window_event(win, type, val1);
+
+        if (!win) {
+            return 0;
+        }
+
+        if (!gli_process_window_event(win, type, val1)) {
+            return 0;
+        }
     } else {
         win = NULL;
+
+        if (type == evtype_Timer && !gli_timer_interval) {
+            return 0;
+        }
     }
 
     if (event) {
@@ -38,15 +52,19 @@ static void gli_process_event(event_t *event, glui32 type, glui32 id,
         event->val1 = val1;
         event->val2 = val2;
     }
+
+    return 1;
 }
 
 static void gli_select(event_t *event, int mid)
 {
     jintArray jdata;
     jint *data;
+    int evOK;
 
     gli_windows_print();
 
+begin:
     jdata = (*jni_env)->NewIntArray(jni_env, 4);
     if (!jdata) {
         jni_no_mem();
@@ -58,9 +76,17 @@ static void gli_select(event_t *event, int mid)
         gli_fatal("JNI error: could not access array");
     }
 
-    gli_process_event(event, data[0], data[1], data[2], data[3]);
+    evOK = gli_process_event(event, data[0], data[1], data[2], data[3]);
 
-    (*jni_env)->DeleteLocalRef(jni_env, jdata);
+#ifdef ANDROID_GREF
+    DELETE_GLOBAL(jdata);
+#else
+    DELETE_LOCAL(jdata);
+#endif
+
+    if (!evOK) {
+        goto begin;
+    }
 }
 
 void glk_select(event_t *event)
@@ -79,6 +105,8 @@ void glk_request_timer_events(glui32 millisecs)
         gli_strict_warning("request_timer_events: millisecs too large");
         return;
     }
+
+    gli_timer_interval = (jint)millisecs;
 
     if (millisecs) {
         (*jni_env)->CallVoidMethod(GLK_M(REQUESTTIMER), (jint)millisecs);

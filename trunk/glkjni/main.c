@@ -15,12 +15,60 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifdef ANDROID
+#include <setjmp.h>
+#include <android/log.h>
+#endif
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <jni.h>
 #include "glk.h"
 #include "glkjni.h"
 #include "jcall.h"
+
+#ifdef ANDROID
+
+jint JNI_OnLoad(JavaVM *vm, void *reserved)
+{
+    if (sizeof(glui32) != 4) {
+        __android_log_write(ANDROID_LOG_ERROR, "glk",
+                "Compile-time error: glui32 is not a 32-bit value. Please fix glk.h.\n");
+        return JNI_ERR;
+    }
+    if ((glui32)(-1) < 0) {
+        __android_log_write(ANDROID_LOG_ERROR, "glk",
+                "Compile-time error: glui32 is not unsigned. Please fix glk.h.\n");
+        return JNI_ERR;
+    }
+    if ((*vm)->GetEnv(vm, (void **)&jni_env, JNI_VERSION_1_4)) {
+        return JNI_ERR;
+    }
+
+    if (setjmp(jump_error)) {
+        return JNI_ERR;
+    }
+
+     jni_jcall_init("org/brickshadow/roboglk");
+     gli_initialize_latin1();
+     return JNI_VERSION_1_4;
+}
+
+void JNI_OnUnload(JavaVM *vm, void *reserved)
+{
+    int i;
+    JNIEnv *env;
+
+    if ((*vm)->GetEnv(vm, (void **)&env, JNI_VERSION_1_4)) {
+        return;
+    }
+
+    for (i = 0; i < MAX_CLASS_ID; i++) {
+        (*env)->DeleteWeakGlobalRef(env, jni_ccache[i].class);
+    }
+}
+
+#else
 
 static JavaVM *vm;
 
@@ -67,7 +115,8 @@ int main(int argc, char **argv)
     }
 
     create_jvm(argv + 1, argc - 1);
-    jni_jcall_init(argc, argv);
+    jni_jcall_init("glkjni");
+    jni_init_glk(argc, argv);
     gli_initialize_latin1();
 
     glk_main();
@@ -75,6 +124,8 @@ int main(int argc, char **argv)
 
     return EXIT_SUCCESS;
 }
+
+#endif
 
 glui32 glk_gestalt(glui32 sel, glui32 val)
 {
@@ -112,11 +163,15 @@ glui32 glk_gestalt_ext(glui32 sel, glui32 val, glui32 *arr, glui32 arrlen)
 
 void glk_exit()
 {
+#ifdef ANDROID
+    longjmp(jump_error, JMP_DONE);
+#else
     gli_windows_print();
     (*jni_env)->CallVoidMethod(GLK_M(EXIT));
     jni_exit_on_exc();
     (*vm)->DestroyJavaVM(vm);
     exit(EXIT_SUCCESS);
+#endif
 }
 
 void glk_tick()
