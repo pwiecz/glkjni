@@ -15,6 +15,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifdef ANDROID
+#include <malloc.h>
+#include <setjmp.h>
+#include <android/log.h>
+#endif
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <jni.h>
@@ -32,18 +38,39 @@ gidispatch_rock_t (*gli_register_arr)(void *array, glui32 len,
 void (*gli_unregister_arr)(void *array, glui32 len, char *typecode,
     gidispatch_rock_t objrock) = NULL;
 
+#ifdef ANDROID
+
+jmp_buf jump_error;
+
+void gli_exit() {
+    longjmp(jump_error, JMP_WHOOPS);
+}
+
+void gli_fatal(char *msg)
+{
+    __android_log_write(ANDROID_LOG_ERROR, "glk", msg);
+    gli_exit();
+}
+
+#else
+
+void gli_exit() {
+    exit(EXIT_FAILURE);
+}
+
 void gli_fatal(char *msg)
 {
     fputs(msg, stderr);
-    exit(EXIT_FAILURE);
+    gli_exit();
 }
+
+#endif
 
 void *gli_malloc(size_t size)
 {
     void *value = malloc(size);
     if (!value) {
-        fputs("JNIGlk: virtual memory exhausted\n", stderr);
-        exit(EXIT_FAILURE);
+        gli_fatal("GlkJNI: virtual memory exhausted\n");
     }
     return value;
 }

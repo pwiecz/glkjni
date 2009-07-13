@@ -15,6 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdio.h>
 #include <jni.h>
 #include "glk.h"
 #include "glkjni.h"
@@ -74,21 +75,50 @@ void gli_win_set_disprock(window_t *win)
 }
 
 /*
- * Clears the pending event status of WIN after an input event.
+ * Clears the pending event status of WIN after an input event. Returns
+ * true if the event was of a requested type.
  */
-void gli_process_window_event(window_t *win, glui32 type, glui32 val1)
+int gli_process_window_event(window_t *win, glui32 type, glui32 val1)
 {
+    /*
+     * For the most part, we trust the frontend to only generate events
+     * that have been requested.
+     *
+     * The tests in this method which check for this are intended for the
+     * following sequence of events:
+     *
+     * - frontend UI thread records an input event
+     * - interpreter thread cancels that kind of event
+     * - interpreter thread calls glk_select/glk_select_poll
+     *
+     * Maybe my notions of how a frontend might be designed with separate
+     * UI and interpreter threads is wrong, but it seems to me that
+     * no matter how carefully interaction between the two threads is
+     * synchronized, there is no way for the UI thread, while recording
+     * a valid input event, to see the future and know that kind of event
+     * will be canceled by the interpreter thread prior to the next call to
+     * glk_select.
+     */
     switch (type) {
     case evtype_MouseInput:
+        if (!win->mouse_request) {
+            return 0;
+        }
         win->mouse_request = FALSE;
         break;
     case evtype_CharInput:
         if (win->text) {
+            if (!(win->text->kb_request & KB_CHAR_REQ)) {
+                return 0;
+            }
             win->text->kb_request = 0;
         }
         break;
     case evtype_LineInput:
         if (win->text) {
+            if (!(win->text->kb_request & KB_LINE_REQ)) {
+                return 0;
+            }
             win->text->kb_request = 0;
             gli_echo_line_input(win, val1);
             gli_unregister_win_input(win);
@@ -96,12 +126,17 @@ void gli_process_window_event(window_t *win, glui32 type, glui32 val1)
         break;
     case evtype_Hyperlink:
         if (win->text) {
+            if (!win->text->link_request) {
+                return 0;
+            }
             win->text->link_request = FALSE;
         }
         break;
     default:
         break;
     }
+
+    return 1;
 }
 
 void glk_set_window(window_t *win)
@@ -120,7 +155,7 @@ void gli_windows_print()
     window_t *win;
 
     for (win = gli_windowlist; win; win = win->next) {
-        if (win->text) {
+        if (win->text && win->text->outbuf_count) {
             gli_window_print(win);
         }
     }
@@ -177,7 +212,7 @@ static window_t *gli_register_window(glui32 type, glui32 rock,
     }
 
     win->jwin = (*jni_env)->NewGlobalRef(jni_env, jwin);
-    (*jni_env)->DeleteLocalRef(jni_env, jwin);
+    DELETE_LOCAL(jwin);
 
     win->mouse_request = FALSE;
     win->text = NULL;

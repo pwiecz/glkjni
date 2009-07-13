@@ -20,7 +20,8 @@
 
 #include <jni.h>
 
-void jni_jcall_init(int argc, char **argv);
+void jni_jcall_init(char *glkpackage);
+void jni_init_glk(int argc, char **argv);
 void jni_exit_on_exc(void);
 int jni_check_exc(void);
 int jni_check_for_exc(int class_id);
@@ -29,9 +30,6 @@ jobject jni_new_global(jobject localref);
 jobject jni_newbytebuffer(void *buf, jlong len);
 jstring jni_jstrfromnative(char *str);
 char *jni_file_getpath(jobject file);
-
-#define jni_warning(msg) \
-    (fprintf(stderr, "Java Glk error: %s\n", msg))
 
 typedef struct classcache_t {
     int id;
@@ -53,6 +51,8 @@ enum ClassID {
     MAX_CLASS_ID
 };
 
+#define MAX_GLK_CLASS GLKCHANNEL_CLASS
+
 extern classcache_t jni_ccache[];
 
 typedef struct methodcache_t {
@@ -66,8 +66,12 @@ typedef struct methodcache_t {
 extern methodcache_t jni_mcache[];
 
 enum SMethodID {
+#ifndef ANDROID
     GLKFACTORY_STARTUP_METHOD = 0,
     FILE_CREATETEMP_METHOD,
+#else
+    FILE_CREATETEMP_METHOD = 0,
+#endif
     MAX_SMETHOD_ID
 };
 
@@ -130,12 +134,19 @@ enum IMethodID {
     FILE_DELETE_METHOD,
     FILE_EXISTS_METHOD,
     BYTEBUFFER_ASINTBUF_METHOD,
+
     MAX_IMETHOD_ID
 };
 
 extern JNIEnv *jni_env;
 
 extern jobject glkobj;
+
+#define DELETE_LOCAL(ref) \
+        ((*jni_env)->DeleteLocalRef(jni_env, ref))
+
+#define DELETE_GLOBAL(ref) \
+        ((*jni_env)->DeleteGlobalRef(jni_env, ref))
 
 #define JNI_CLASS(c) \
     (jni_ccache[c ## _CLASS].class)

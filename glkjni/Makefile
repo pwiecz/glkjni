@@ -23,6 +23,9 @@ OPTIONS = -Wall -g
 #  -I/path/to/jdk/include/linux
 #JVM_LIB = -L/path/to/jre/lib/i386/client -ljvm
 
+JNI_INCLUDES = -I/opt/jdk/include -I/opt/jdk/include/linux
+JVM_LIB = -L/opt/jdk/jre/lib/i386/client -ljvm
+
 CFLAGS = $(OPTIONS) $(JNI_INCLUDES)
 
 GLKLIB = libglkjni.a

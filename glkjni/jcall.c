@@ -15,7 +15,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifdef ANDROID
+#include <setjmp.h>
+#include <android/log.h>
+#endif
+
 #include <assert.h>
+#include <stdio.h>
 #include <string.h>
 #include <jni.h>
 #include "glk.h"
@@ -29,10 +35,10 @@ jobject glkobj;
 static glkunix_startup_t *startdata;
 
 classcache_t jni_ccache[] = {
-        { GLK_CLASS, "glkjni/Glk" },
-        { GLKFACTORY_CLASS, "glkjni/GlkFactory" },
-        { GLKWINDOW_CLASS, "glkjni/GlkWindow" },
-        { GLKCHANNEL_CLASS, "glkjni/GlkSChannel" },
+        { GLK_CLASS, "/Glk" },
+        { GLKFACTORY_CLASS, "/GlkFactory" },
+        { GLKWINDOW_CLASS, "/GlkWindow" },
+        { GLKCHANNEL_CLASS, "/GlkSChannel" },
         { ERROR_CLASS, "java/lang/Error" },
         { UOE_CLASS, "java/lang/UnsupportedOperationException" },
         { STRING_CLASS, "java/lang/String" },
@@ -47,9 +53,10 @@ classcache_t jni_ccache[] = {
 methodcache_t jni_mcache[] = {
 
         /* Static methods. */
-
+#ifndef ANDROID
         METHOD(GLKFACTORY, STARTUP, "newInstance",
                 "([Ljava/lang/String;)V"),
+#endif
         METHOD(FILE, CREATETEMP, "createTempFile",
                 "(Ljava/lang/String;Ljava/lang/String;)Ljava/io/File;"),
 
@@ -58,8 +65,8 @@ methodcache_t jni_mcache[] = {
         METHOD(GLK, EXIT, "exit", "()V"),
         METHOD(GLK, GESTALT, "gestalt", "(II[I)I"),
         METHOD(GLK, WINDOWOPEN, "windowOpen",
-                "(Lglkjni/GlkWindow;IIII[Lglkjni/GlkWindow;)V"),
-        METHOD(GLK, WINDOWCLOSE, "windowClose", "(Lglkjni/GlkWindow;)V"),
+                "see jni_init_methods"),
+        METHOD(GLK, WINDOWCLOSE, "windowClose", "see jni_init_methods"),
         METHOD(GLK, SETHINT, "setStyleHint", "(IIII)V"),
         METHOD(GLK, CLEARHINT, "clearStyleHint", "(III)V"),
         METHOD(GLK, NAMEDFILE, "namedFile",
@@ -69,9 +76,9 @@ methodcache_t jni_mcache[] = {
         METHOD(GLK, CANCELTIMER, "cancelTimer", "()V"),
         METHOD(GLK, IMAGEINFO, "getImageInfo", "(I[I)Z"),
         METHOD(GLK, CREATECHAN, "createChannel",
-                "()Lglkjni/GlkSChannel;"),
+                "see jni_init_methods"),
         METHOD(GLK, CHANNELDESTROY, "destroyChannel",
-                "(Lglkjni/GlkSChannel;)V"),
+                "see jni_init_methods"),
         METHOD(GLK, SOUNDHINT, "setSoundLoadHint", "(IZ)V"),
         METHOD(GLK, SELECT, "select", "([I)V"),
         METHOD(GLK, POLL, "poll", "([I)V"),
@@ -84,7 +91,7 @@ methodcache_t jni_mcache[] = {
         METHOD(GLKWINDOW, CURSOR, "moveCursor", "(II)V"),
         METHOD(GLKWINDOW, SIZE, "getSize", "([I)V"),
         METHOD(GLKWINDOW, ARRANGE, "setArrangement",
-                "(IILglkjni/GlkWindow;)V"),
+                "see jni_init_methods"),
         METHOD(GLKWINDOW, REQUESTCHAR, "requestCharEvent", "(Z)V"),
         METHOD(GLKWINDOW, CANCELCHAR, "cancelCharEvent", "()V"),
         METHOD(GLKWINDOW, REQUESTLINE, "requestLineEvent",
@@ -126,9 +133,7 @@ methodcache_t jni_mcache[] = {
 
 void jni_no_mem()
 {
-    fputs("GlkJNI: the JVM was unable to allocate sufficient memory\n",
-            stderr);
-    exit(EXIT_FAILURE);
+    gli_fatal("GlkJNI: the JVM was unable to allocate sufficient memory\n");
 }
 
 /*
@@ -153,7 +158,8 @@ void jni_exit_on_exc()
 {
     if ((*jni_env)->ExceptionCheck(jni_env)) {
         (*jni_env)->ExceptionDescribe(jni_env);
-        exit(EXIT_FAILURE);
+        (*jni_env)->ExceptionClear(jni_env);
+        gli_exit();
     }
 }
 
@@ -169,7 +175,8 @@ int jni_check_exc()
    }
    if (INSTANCE_OF(exc, ERROR_CLASS)) {
        (*jni_env)->ExceptionDescribe(jni_env);
-       exit(EXIT_FAILURE);
+       (*jni_env)->ExceptionClear(jni_env);
+       gli_exit();
    }
    (*jni_env)->ExceptionClear(jni_env);
    (*jni_env)->DeleteLocalRef(jni_env, exc);
@@ -189,10 +196,12 @@ int jni_check_for_exc(int class_id)
    }
    if (INSTANCE_OF(exc, ERROR_CLASS)) {
        (*jni_env)->ExceptionDescribe(jni_env);
-       exit(EXIT_FAILURE);
+       (*jni_env)->ExceptionClear(jni_env);
+       gli_exit();
    } else if (!INSTANCE_OF(exc, class_id)) {
        (*jni_env)->ExceptionDescribe(jni_env);
-       exit(EXIT_FAILURE);
+       (*jni_env)->ExceptionClear(jni_env);
+       gli_exit();
    }
    (*jni_env)->ExceptionClear(jni_env);
    (*jni_env)->DeleteLocalRef(jni_env, exc);
@@ -292,21 +301,37 @@ done:
 
 static void no_class_def(char *name)
 {
+#ifdef ANDROID
+    __android_log_print(ANDROID_LOG_ERROR, "glk",
+            "GlkJNI: Unable to locate class %s\n", name);
+#else
     fprintf(stderr, "GlkJNI: Unable to locate class %s\n", name);
-    exit(EXIT_FAILURE);
+#endif
+    gli_exit();
 }
 
-static void jni_init_classes()
+static void jni_init_classes(char *glkpackage)
 {
     int i;
     jobject localref;
+    char *cname;
 
     for (i = 0; i < MAX_CLASS_ID; i++) {
         assert(jni_ccache[i].id == i);
 
-        localref = (*jni_env)->FindClass(jni_env, jni_ccache[i].name);
+        if (i <= MAX_GLK_CLASS) {
+            cname = (char *)gli_malloc(
+                    1 + strlen(glkpackage) + strlen(jni_ccache[i].name));
+            strcpy(cname, glkpackage);
+            strcat(cname, jni_ccache[i].name);
+            jni_ccache[i].name = cname;
+        } else {
+            cname = jni_ccache[i].name;
+        }
+
+        localref = (*jni_env)->FindClass(jni_env, cname);
         if (!localref) {
-            no_class_def(jni_ccache[i].name);
+            no_class_def(cname);
         }
 
         jni_ccache[i].class = jni_new_global(localref);
@@ -315,15 +340,21 @@ static void jni_init_classes()
 
 static void no_such_method(char *class, char *method)
 {
+#ifdef ANDROID
+    __android_log_print(ANDROID_LOG_ERROR, "glk",
+            "GlkJNI: unable to locate method %s.%s\n", class, method);
+#else
     fprintf(stderr, "GlkJNI: unable to locate method %s.%s\n",
             class, method);
-    exit(EXIT_FAILURE);
+#endif
+    gli_exit();
 }
 
-static void jni_init_methods()
+static void jni_init_methods(char *glkpackage)
 {
     int i;
     jmethodID mid;
+    char msig[256];
 
     for (i = 0; i < MAX_IMETHOD_ID; i++) {
         int class_id;
@@ -334,20 +365,174 @@ static void jni_init_methods()
         class_id = jni_mcache[i].class_id;
         class = jni_ccache[class_id].class;
 
+        /*
+         * Yes this is horribly ugly.
+         */
+        switch (i) {
+        case GLK_WINDOWOPEN_METHOD:
+            strcpy(msig, "(L");
+            strcat(msig, glkpackage);
+            strcat(msig, "/GlkWindow;IIII[L");
+            strcat(msig, glkpackage);
+            strcat(msig, "/GlkWindow;)V");
+            break;
+        case GLK_WINDOWCLOSE_METHOD:
+            strcpy(msig, "(L");
+            strcat(msig, glkpackage);
+            strcat(msig, "/GlkWindow;)V");
+            break;
+        case GLK_CREATECHAN_METHOD:
+            strcpy(msig, "()L");
+            strcat(msig, glkpackage);
+            strcat(msig, "/GlkSChannel;");
+            break;
+        case GLK_CHANNELDESTROY_METHOD:
+            strcpy(msig, "(L");
+            strcat(msig, glkpackage);
+            strcat(msig, "/GlkSChannel;)V");
+            break;
+        case GLKWINDOW_ARRANGE_METHOD:
+            strcpy(msig, "(IIL");
+            strcat(msig, glkpackage);
+            strcat(msig, "/GlkWindow;)V");
+            break;
+        default:
+            strcpy(msig, jni_mcache[i].sig);
+            break;
+        }
+
         if (i < MAX_SMETHOD_ID) {
             mid = (*jni_env)->GetStaticMethodID(jni_env, class,
-                    jni_mcache[i].name, jni_mcache[i].sig);
+                    jni_mcache[i].name, msig);
         } else {
             mid = (*jni_env)->GetMethodID(jni_env, class,
-                    jni_mcache[i].name, jni_mcache[i].sig);
+                    jni_mcache[i].name, msig);
         }
         if (!mid) {
-            no_such_method(jni_ccache[class_id].name, jni_mcache[i].name);
+            no_such_method(jni_ccache[class_id].name, msig);
         }
 
         jni_mcache[i].mid = mid;
     }
 }
+
+/*
+ * Calls glkunix_startup_code.
+ */
+static jboolean JNICALL jni_glkstartup(JNIEnv *env, jclass class,
+        jobject gobj, jobjectArray args)
+{
+    jsize jArgc;
+    jsize argc = 0;
+    char **argv;
+    int i, res;
+
+    if (startdata || !gobj || !args) {
+        goto whoops;
+    }
+
+    jni_env = env;
+
+    jArgc = (*jni_env)->GetArrayLength(jni_env, args);
+    if (jArgc < 1) {
+        goto whoops;
+    }
+
+#ifdef ANDROID
+    if (setjmp(jump_error)) {
+        goto whoops;
+    }
+#endif
+
+    glkobj = jni_new_global(gobj);
+
+    argv = (char **)gli_malloc((1 + jArgc) * sizeof(char **));
+
+    for (i = 0; i < jArgc; i++) {
+        char *arg;
+        jstring jArg = (*jni_env)->GetObjectArrayElement(jni_env, args, i);
+        if (!jArg) {
+            continue;
+        }
+        arg = jni_nativefromjstr(jArg);
+        if (arg[0] == '\0') {
+            continue;
+        }
+        argv[argc++] = arg;
+    }
+    argv[argc] = NULL;
+
+    startdata = (glkunix_startup_t *)gli_malloc(sizeof(glkunix_startup_t));
+    startdata->argc = argc;
+    startdata->argv = argv;
+
+    res = glkunix_startup_code(startdata);
+    return res;
+
+whoops:
+#ifdef ANDROID
+    gli_strict_warning("could not start interpreter\n");
+#else
+    gli_fatal("GlkJNI error: could not start interpreter\n");
+#endif
+
+    return FALSE;
+}
+
+#ifdef ANDROID
+
+static int JNICALL jni_glkmain(JNIEnv *env, jclass class)
+{
+    jni_env = env;
+
+    switch (setjmp(jump_error)) {
+    case JMP_WHOOPS:
+        goto whoops;
+        break;
+    case JMP_DONE:
+        goto done;
+        break;
+    }
+
+    glk_main();
+
+done:
+    return 0;
+whoops:
+    return 1;
+}
+
+#endif
+
+static void jni_register_natives(char *glkpackage)
+{
+    JNINativeMethod nm;
+    char msig[256];
+
+    strcpy(msig, "(L");
+    strcat(msig, glkpackage);
+    strcat(msig, "/Glk;[Ljava/lang/String;)Z");
+
+    nm.name = "startup";
+    nm.signature = msig;
+    nm.fnPtr = jni_glkstartup;
+
+    (*jni_env)->RegisterNatives(jni_env,
+            jni_ccache[GLKFACTORY_CLASS].class, &nm, 1);
+    jni_exit_on_exc();
+
+#ifdef ANDROID
+    nm.name = "run";
+    nm.signature = "()I";
+    nm.fnPtr = jni_glkmain;
+
+    (*jni_env)->RegisterNatives(jni_env,
+            jni_ccache[GLKFACTORY_CLASS].class, &nm, 1);
+    jni_exit_on_exc();
+#endif
+}
+
+#ifndef ANDROID
 
 /*
  * Creates an array of jstrings from the command-line arguments.
@@ -398,73 +583,7 @@ static jobjectArray jni_argv(int argc, char **argv)
     return arr;
 }
 
-jboolean JNICALL jni_glkstartup(JNIEnv *env, jclass class,
-        jobject gobj, jobjectArray args)
-{
-    jsize jArgc;
-    jsize argc = 0;
-    char **argv;
-    int i;
-
-    if (startdata) {
-        goto whoops;
-    }
-    if (!gobj) {
-        goto whoops;
-    }
-    if (!args) {
-        goto whoops;
-    }
-    jArgc = (*jni_env)->GetArrayLength(jni_env, args);
-    if (jArgc < 1) {
-        goto whoops;
-    }
-
-    glkobj = jni_new_global(gobj);
-
-    argv = (char **)gli_malloc((1 + jArgc) * sizeof(char **));
-
-    for (i = 0; i < jArgc; i++) {
-        char *arg;
-        jstring jArg = (*jni_env)->GetObjectArrayElement(jni_env, args, i);
-        if (!jArg) {
-            continue;
-        }
-        arg = jni_nativefromjstr(jArg);
-        if (arg[0] == '\0') {
-            continue;
-        }
-        argv[argc++] = arg;
-    }
-    argv[argc] = NULL;
-
-    startdata = (glkunix_startup_t *)gli_malloc(sizeof(glkunix_startup_t));
-    startdata->argc = argc;
-    startdata->argv = argv;
-
-    return glkunix_startup_code(startdata);
-
-whoops:
-    gli_fatal("GlkJNI error: startup called with invalid args\n");
-
-    /* Should never get here. */
-    return FALSE;
-}
-
-static void jni_register_natives()
-{
-    JNINativeMethod nm;
-
-    nm.name = "startup";
-    nm.signature = "(Lglkjni/Glk;[Ljava/lang/String;)Z";
-    nm.fnPtr = jni_glkstartup;
-
-    (*jni_env)->RegisterNatives(jni_env,
-            jni_ccache[GLKFACTORY_CLASS].class, &nm, 1);
-    jni_exit_on_exc();
-}
-
-static void jni_init_glk(int argc, char **argv)
+void jni_init_glk(int argc, char **argv)
 {
     jobjectArray jArgv;
 
@@ -479,11 +598,17 @@ static void jni_init_glk(int argc, char **argv)
         gli_fatal("GlkJNI: startup code not run");
     }
 }
+#endif
 
-void jni_jcall_init(int argc, char **argv)
+void jni_jcall_init(char *glkpackage)
 {
-    jni_init_classes();
-    jni_init_methods();
-    jni_register_natives();
-    jni_init_glk(argc, argv);
+    int plen = strlen(glkpackage);
+
+    if (plen > 100) {
+        gli_fatal("Package name too long\n");
+    }
+
+    jni_init_classes(glkpackage);
+    jni_init_methods(glkpackage);
+    jni_register_natives(glkpackage);
 }

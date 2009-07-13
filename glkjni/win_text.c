@@ -15,6 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdio.h>
 #include <jni.h>
 #include "glk.h"
 #include "glkjni.h"
@@ -302,8 +303,8 @@ static void gli_request_line_event(window_t *win, char *buf, glui32 *ubuf,
         return;
     }
 
-    if ((jint)maxlen < 0) {
-        gli_strict_warning("request_line_event: maxlen too large");
+    if ((jint)maxlen <= 0) {
+        gli_strict_warning("request_line_event: maxlen out of range");
         return;
     }
 
@@ -324,7 +325,7 @@ static void gli_request_line_event(window_t *win, char *buf, glui32 *ubuf,
         (*jni_env)->CallVoidMethod(
                 INSTANCE_M(win->jwin, GLKWINDOW_REQUESTLINEUNI),
                 intbuf, (jint)maxlen, (jint)initlen);
-        (*jni_env)->DeleteLocalRef(jni_env, intbuf);
+        DELETE_LOCAL(intbuf);
         if (jni_check_exc()) {
             goto done;
         }
@@ -343,7 +344,7 @@ static void gli_request_line_event(window_t *win, char *buf, glui32 *ubuf,
     }
 
 done:
-    (*jni_env)->DeleteLocalRef(jni_env, bytebuf);
+    DELETE_LOCAL(bytebuf);
 }
 
 void glk_request_line_event(window_t *win, char *buf, glui32 maxlen,
