@@ -15,6 +15,10 @@
     define our own str_eq() and str_len(), rather than relying on the
     standard libraries. */
 
+#ifdef ANDROID
+#include <android/log.h>
+#endif
+
 /* We also define our own TRUE and FALSE and NULL. */
 #ifndef TRUE
 #define TRUE 1
@@ -57,10 +61,12 @@ static void verb_yada(void);
 static void verb_quote(void);
 static void verb_move(void);
 static void verb_quit(void);
+#ifndef ANDROID
 static void verb_script(void);
 static void verb_unscript(void);
 static void verb_save(void);
 static void verb_restore(void);
+#endif
 
 typedef void glkunix_startup_t;
 
@@ -133,7 +139,6 @@ void glk_main(void)
             glk_select(&ev);
             
             switch (ev.type) {
-            
                 case evtype_LineInput:
                     if (ev.win == mainwin) {
                         gotline = TRUE;
@@ -169,8 +174,9 @@ void glk_main(void)
         /* The line we have received in commandbuf is not null-terminated.
             We handle that first. */
         len = ev.val1; /* Will be between 0 and 255, inclusive. */
+
         commandbuf[len] = '\0';
-        
+
         /* Then squash to lower-case. */
         for (cx = commandbuf; *cx; cx++) { 
             *cx = glk_char_to_lower(*cx);
@@ -208,6 +214,7 @@ void glk_main(void)
         else if (str_eq(cmd, "quit")) {
             verb_quit();
         }
+#ifndef ANDROID
         else if (str_eq(cmd, "save")) {
             verb_save();
         }
@@ -220,6 +227,7 @@ void glk_main(void)
         else if (str_eq(cmd, "unscript")) {
             verb_unscript();
         }
+#endif
         else {
             glk_put_string("I don't understand the command \"");
             glk_put_string(cmd);
@@ -433,6 +441,8 @@ static void verb_quit(void)
     }
 }
 
+#ifndef ANDROID
+
 static void verb_script(void)
 {
     if (scriptstr) {
@@ -563,6 +573,8 @@ static void verb_restore(void)
     
     glk_put_string("Game restored.\n");
 }
+
+#endif
 
 /* simple string length test */
 static int str_len(char *s1)
