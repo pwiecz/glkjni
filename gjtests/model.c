@@ -55,7 +55,7 @@ static int yes_or_no(void);
 static int str_eq(char *s1, char *s2);
 static int str_len(char *s1);
 
-static void verb_help(void);
+__inline__ static void verb_help(void);
 static void verb_jump(void);
 static void verb_yada(void);
 static void verb_quote(void);
