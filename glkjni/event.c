@@ -78,11 +78,8 @@ begin:
 
     evOK = gli_process_event(event, data[0], data[1], data[2], data[3]);
 
-#ifdef ANDROID_GREF
-    DELETE_GLOBAL(jdata);
-#else
+    (*jni_env)->ReleaseIntArrayElements(jni_env, jdata, data, JNI_ABORT);
     DELETE_LOCAL(jdata);
-#endif
 
     if (!evOK) {
         goto begin;

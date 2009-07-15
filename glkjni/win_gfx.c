@@ -55,7 +55,7 @@ glui32 glk_image_get_info(glui32 image, glui32 *width, glui32 *height)
     (*jni_env)->ReleaseIntArrayElements(jni_env, jdim, dim, JNI_ABORT);
 
 done:
-    (*jni_env)->DeleteLocalRef(jni_env, jdim);
+    DELETE_LOCAL(jdim);
     if (width) {
         *width = wid;
     }
@@ -82,12 +82,12 @@ glui32 glk_image_draw(window_t *win, glui32 image, glsi32 val1,
             return FALSE;
         }
         res = (*jni_env)->CallBooleanMethod(
-                INSTANCE_M(win->jwin, GLKWINDOW_DRAWINLINE),
+                WIN_M(win->jwin, DRAWINLINE),
                 (jint)image, (jint)val1);
         break;
     case wintype_Graphics:
         res = (*jni_env)->CallBooleanMethod(
-                INSTANCE_M(win->jwin, GLKWINDOW_DRAW),
+                WIN_M(win->jwin, DRAW),
                 (jint)image, (jint)val1, (jint)val2);
         break;
     default:
@@ -122,12 +122,12 @@ glui32 glk_image_draw_scaled(window_t *win, glui32 image,
             return FALSE;
         }
         res = (*jni_env)->CallBooleanMethod(
-                INSTANCE_M(win->jwin, GLKWINDOW_DRAWINLINESCALED),
+                WIN_M(win->jwin, DRAWINLINESCALED),
                 (jint)image, (jint)val1, (jint)width, (jint)height);
         break;
     case wintype_Graphics:
         res = (*jni_env)->CallBooleanMethod(
-                INSTANCE_M(win->jwin, GLKWINDOW_DRAWSCALED),
+                WIN_M(win->jwin, DRAWSCALED),
                 (jint)image, (jint)val1, (jint)val2,
                 (jint)width, (jint)height);
         break;
@@ -148,7 +148,7 @@ void glk_window_flow_break(window_t *win)
     if (win->type != wintype_TextBuffer) {
         return;
     }
-    (*jni_env)->CallVoidMethod(INSTANCE_M(win->jwin, GLKWINDOW_FLOWBREAK));
+    (*jni_env)->CallVoidMethod(WIN_M(win->jwin, FLOWBREAK));
     jni_check_exc();
 }
 
@@ -162,8 +162,7 @@ void glk_window_erase_rect(window_t *win,
         return;
     }
 
-    (*jni_env)->CallVoidMethod(
-            INSTANCE_M(win->jwin, GLKWINDOW_ERASERECT),
+    (*jni_env)->CallVoidMethod(WIN_M(win->jwin, ERASERECT),
             (jint)left, (jint)top, (jint)width, (jint)height);
     jni_check_exc();
 }
@@ -182,9 +181,8 @@ void glk_window_fill_rect(window_t *win, glui32 color,
         return;
     }
 
-    (*jni_env)->CallVoidMethod(
-            INSTANCE_M(win->jwin, GLKWINDOW_FILLRECT), (jint)color,
-            (jint)left, (jint)top, (jint)width, (jint)height);
+    (*jni_env)->CallVoidMethod(WIN_M(win->jwin, FILLRECT),
+            (jint)color, (jint)left, (jint)top, (jint)width, (jint)height);
     jni_check_exc();
 }
 
@@ -198,7 +196,6 @@ void glk_window_set_background_color(window_t *win, glui32 color)
         return;
     }
 
-    (*jni_env)->CallVoidMethod(
-            INSTANCE_M(win->jwin, GLKWINDOW_SETBG), (jint)color);
+    (*jni_env)->CallVoidMethod(WIN_M(win->jwin, SETBG), (jint)color);
     jni_check_exc();
 }

@@ -155,7 +155,10 @@ extern jobject glkobj;
     ((*jni_env)->IsInstanceOf(jni_env, obj, jni_ccache[c].class))
 
 #define GLK_M(m) \
-    jni_env, glkobj, jni_mcache[GLK ## _ ## m ## _METHOD].mid
+    jni_env, glkobj, jni_mcache[GLK_ ## m ## _METHOD].mid
+
+#define WIN_M(w, m) \
+    jni_env, w, jni_mcache[GLKWINDOW_ ## m ## _METHOD].mid
 
 #define STATIC_M(c, m) \
     jni_env, JNI_CLASS(c), jni_mcache[c ## _ ## m ## _METHOD].mid

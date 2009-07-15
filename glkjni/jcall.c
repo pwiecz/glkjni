@@ -143,7 +143,7 @@ void jni_no_mem()
 jobject jni_new_global(jobject localref)
 {
     jobject globalref = (*jni_env)->NewGlobalRef(jni_env, localref);
-    (*jni_env)->DeleteLocalRef(jni_env, localref);
+    DELETE_LOCAL(localref);
     if (!globalref) {
         jni_no_mem();
     }
@@ -179,7 +179,7 @@ int jni_check_exc()
        gli_exit();
    }
    (*jni_env)->ExceptionClear(jni_env);
-   (*jni_env)->DeleteLocalRef(jni_env, exc);
+   DELETE_LOCAL(exc);
    return TRUE;
 }
 
@@ -204,7 +204,7 @@ int jni_check_for_exc(int class_id)
        gli_exit();
    }
    (*jni_env)->ExceptionClear(jni_env);
-   (*jni_env)->DeleteLocalRef(jni_env, exc);
+   DELETE_LOCAL(exc);
    return TRUE;
 }
 
@@ -249,7 +249,7 @@ jstring jni_jstrfromnative(char *str)
 
     bytes = jni_bytesfromstr(str);
     jstr = (*jni_env)->NewObject(STATIC_M(STRING, FROMNATIVE), bytes, 0);
-    (*jni_env)->DeleteLocalRef(jni_env, bytes);
+    DELETE_LOCAL(bytes);
     if (jni_check_exc()) {
         return NULL;
     }
@@ -276,7 +276,7 @@ char *jni_nativefromjstr(jstring jstr)
     len = (*jni_env)->GetArrayLength(jni_env, bytes);
     str = (char *)gli_malloc(len + 1);
     (*jni_env)->GetByteArrayRegion(jni_env, bytes, 0, len, (jbyte *)str);
-    (*jni_env)->DeleteLocalRef(jni_env, bytes);
+    DELETE_LOCAL(bytes);
     str[len] = 0;
 
     return str;
@@ -295,7 +295,7 @@ char *jni_file_getpath(jobject file)
     path = jni_nativefromjstr(jpath);
 
 done:
-    (*jni_env)->DeleteLocalRef(jni_env, jpath);
+    DELETE_LOCAL(jpath);
     return path;
 }
 
@@ -576,7 +576,7 @@ static jobjectArray jni_argv(int argc, char **argv)
         jstr = jni_jstrfromnative(jArgv[i]);
         if (jstr) {
             (*jni_env)->SetObjectArrayElement(jni_env, arr, i, jstr);
-            (*jni_env)->DeleteLocalRef(jni_env, jstr);
+            DELETE_LOCAL(jstr);
         }
     }
 
@@ -591,7 +591,7 @@ void jni_init_glk(int argc, char **argv)
 
     (*jni_env)->CallStaticVoidMethod(
             STATIC_M(GLKFACTORY, STARTUP), jArgv);
-    (*jni_env)->DeleteLocalRef(jni_env, jArgv);
+    DELETE_LOCAL(jArgv);
     jni_exit_on_exc();
 
     if (!glkobj) {

@@ -130,7 +130,7 @@ void glk_schannel_destroy(schannel_t *schan)
 
     (*jni_env)->CallVoidMethod(GLK_M(CHANNELDESTROY), schan->jchan);
     jni_check_exc();
-    (*jni_env)->DeleteGlobalRef(jni_env, schan->jchan);
+    DELETE_GLOBAL(schan->jchan);
 
     free(schan);
 }
