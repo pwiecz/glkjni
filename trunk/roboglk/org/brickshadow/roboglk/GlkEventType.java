@@ -1,3 +1,20 @@
+/* This file is a part of roboglk.
+ * Copyright (c) 2009 Edward McCardell
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package org.brickshadow.roboglk;
 
 /**
@@ -104,7 +121,7 @@ public interface GlkEventType {
      * <li>{@code event[2]}: the number of the stopped sound resource</li>
      * <li>{@code event[3]}: the {@code notify} argument passed to the
      *     corresponding call to
-     *     {@link GlkSChannel#play(int, int, boolean)}.</li>
+     *     {@link GlkSChannel#play(int, int, int)}.</li>
      * </ul>
      */
     int SoundNotify = 7;
