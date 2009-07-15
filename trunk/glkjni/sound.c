@@ -152,7 +152,7 @@ glui32 glk_schannel_play(schannel_t *chan, glui32 snd)
 glui32 glk_schannel_play_ext(schannel_t *chan, glui32 snd, glui32 repeats,
     glui32 notify)
 {
-    jboolean jnotify, res;
+    jboolean res;
 
     if (!chan) {
         gli_strict_warning("schannel_play: invalid id.");
@@ -173,11 +173,9 @@ glui32 glk_schannel_play_ext(schannel_t *chan, glui32 snd, glui32 repeats,
         return TRUE;
     }
 
-    jnotify = (notify ? JNI_TRUE : JNI_FALSE);
-
     res = (*jni_env)->CallBooleanMethod(
             INSTANCE_M(chan->jchan, GLKCHANNEL_PLAY),
-            (jint)snd, (jint)repeats, jnotify);
+            (jint)snd, (jint)repeats, (jint)notify);
     if (jni_check_exc()) {
         res = FALSE;
     }
@@ -202,7 +200,7 @@ void glk_schannel_set_volume(schannel_t *chan, glui32 vol)
         gli_strict_warning("schannel_set_volume: invalid id.");
         return;
     }
-    if ((jint)vol < 0) {
+    if ((jint)vol < 0 || (jint)vol > 0x10000) {
         gli_strict_warning("schannel_set_volume: volume too loud");
     }
 
