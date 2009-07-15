@@ -250,7 +250,7 @@ static void gli_unregister_window(window_t *win)
         next->prev = prev;
     }
 
-    (*jni_env)->DeleteGlobalRef(jni_env, win->jwin);
+    DELETE_GLOBAL(win->jwin);
 
     if (win->text) {
         gli_unregister_win_input(win);
@@ -336,7 +336,7 @@ static int jni_open_window(winid_t splitwin, glui32 method, jint size,
     jobjectArray jwins;
 
     jwins = (*jni_env)->NewObjectArray(
-            jni_env, 2, jni_ccache[GLKWINDOW_CLASS].class, NULL);
+            jni_env, 2, JNI_CLASS(GLKWINDOW), NULL);
     if (!jwins) {
         jni_no_mem();
     }
@@ -365,13 +365,13 @@ static int jni_open_window(winid_t splitwin, glui32 method, jint size,
         *jpairwin = NULL;
     }
 
-    (*jni_env)->DeleteLocalRef(jni_env, jwins);
+    DELETE_LOCAL(jwins);
     return TRUE;
 
 whoops1:
-    (*jni_env)->DeleteLocalRef(jni_env, *jnewwin);
+    DELETE_LOCAL(*jnewwin);
 whoops2:
-    (*jni_env)->DeleteLocalRef(jni_env, jwins);
+    DELETE_LOCAL(jwins);
     return FALSE;
 }
 
@@ -619,8 +619,7 @@ void glk_request_mouse_event(window_t *win)
     }
 
     if (!win->mouse_request) {
-        (*jni_env)->CallVoidMethod(
-                INSTANCE_M(win->jwin, GLKWINDOW_REQUESTMOUSE));
+        (*jni_env)->CallVoidMethod(WIN_M(win->jwin, REQUESTMOUSE));
         if (!jni_check_exc()) {
             win->mouse_request = TRUE;
         }
@@ -635,8 +634,7 @@ void glk_cancel_mouse_event(window_t *win)
     }
 
     if (win->mouse_request) {
-        (*jni_env)->CallVoidMethod(
-                INSTANCE_M(win->jwin, GLKWINDOW_CANCELMOUSE));
+        (*jni_env)->CallVoidMethod(WIN_M(win->jwin, CANCELMOUSE));
         jni_check_exc();
         win->mouse_request = FALSE;
     }
@@ -661,7 +659,7 @@ void glk_window_clear(window_t *win)
         gli_window_clear_outbuf(win->text);
     }
 
-    (*jni_env)->CallVoidMethod(INSTANCE_M(win->jwin, GLKWINDOW_CLEAR));
+    (*jni_env)->CallVoidMethod(WIN_M(win->jwin, CLEAR));
     jni_check_exc();
 }
 
@@ -676,8 +674,7 @@ static void jni_window_get_size(jobject jwin, glui32 *width, glui32 *height)
     if (!jsizes) {
         jni_no_mem();
     }
-    (*jni_env)->CallVoidMethod(
-            INSTANCE_M(jwin, GLKWINDOW_SIZE), jsizes);
+    (*jni_env)->CallVoidMethod(WIN_M(jwin, SIZE), jsizes);
     if (jni_check_exc()) {
         goto done;
     }
@@ -691,7 +688,7 @@ static void jni_window_get_size(jobject jwin, glui32 *width, glui32 *height)
     (*jni_env)->ReleaseIntArrayElements(jni_env, jsizes, sizes, JNI_ABORT);
 
 done:
-    (*jni_env)->DeleteLocalRef(jni_env, jsizes);
+    DELETE_LOCAL(jsizes);
     if (width) {
         *width = wid;
     }
@@ -809,7 +806,7 @@ void glk_window_set_arrangement(window_t *win, glui32 method, glui32 size,
     win->key = key;
     win->constraint = (jint)size;
 
-    (*jni_env)->CallVoidMethod(INSTANCE_M(win->jwin, GLKWINDOW_ARRANGE),
+    (*jni_env)->CallVoidMethod(WIN_M(win->jwin, ARRANGE),
             (jint)method, (jint)size, key->jwin);
     jni_check_exc();
 }

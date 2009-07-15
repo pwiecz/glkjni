@@ -174,34 +174,33 @@ void glkjni_set_story_path(char *storypath)
     }
 
     jfile = (*jni_env)->NewObject(STATIC_M(FILE, FROMSTRING), jpath);
-    (*jni_env)->DeleteLocalRef(jni_env, jpath);
+    DELETE_LOCAL(jpath);
     if (jni_check_exc()) {
         return;
     }
 
-    exists = (*jni_env)->CallBooleanMethod(
-            INSTANCE_M(jfile, FILE_EXISTS));
+    exists = (*jni_env)->CallBooleanMethod(INSTANCE_M(jfile, FILE_EXISTS));
     if (jni_check_exc()) {
-        (*jni_env)->DeleteLocalRef(jni_env, jfile);
+        DELETE_LOCAL(jfile);
         return;
     }
 
     jpath = (*jni_env)->CallObjectMethod(
             INSTANCE_M(jfile, FILE_GETABSPATH));
-    (*jni_env)->DeleteLocalRef(jni_env, jfile);
+    DELETE_LOCAL(jfile);
     if (jni_check_exc()) {
-        (*jni_env)->DeleteLocalRef(jni_env, jpath);
+        DELETE_LOCAL(jpath);
         return;
     }
 
     fid = (*jni_env)->GetStaticFieldID(jni_env, JNI_CLASS(GLKFACTORY),
             "storyPath", "Ljava/lang/String;");
     if (!fid) {
-        (*jni_env)->DeleteLocalRef(jni_env, jpath);
+        DELETE_LOCAL(jpath);
         return;
     }
 
     (*jni_env)->SetStaticObjectField(jni_env, JNI_CLASS(GLKFACTORY),
             fid, jpath);
-    (*jni_env)->DeleteLocalRef(jni_env, jpath);
+    DELETE_LOCAL(jpath);
 }

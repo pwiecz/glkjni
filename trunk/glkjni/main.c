@@ -155,7 +155,7 @@ glui32 glk_gestalt_ext(glui32 sel, glui32 val, glui32 *arr, glui32 arrlen)
     if (arr && arrlen) {
         (*jni_env)->GetIntArrayRegion(jni_env, ints, 0, arrlen,
                 (jint *)arr);
-        (*jni_env)->DeleteLocalRef(jni_env, ints);
+        DELETE_LOCAL(ints);
     }
 
     return (glui32)res;

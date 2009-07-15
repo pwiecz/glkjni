@@ -112,9 +112,8 @@ void gli_window_print(window_t *win)
     }
 
     jstr = (*jni_env)->NewString(jni_env, text->outbuf, text->outbuf_count);
-    (*jni_env)->CallVoidMethod(
-            INSTANCE_M(win->jwin, GLKWINDOW_PRINT), jstr);
-    (*jni_env)->DeleteLocalRef(jni_env, jstr);
+    (*jni_env)->CallVoidMethod(WIN_M(win->jwin, PRINT), jstr);
+    DELETE_LOCAL(jstr);
     jni_check_exc();
 
     gli_window_clear_outbuf(text);
@@ -218,7 +217,7 @@ void glk_window_move_cursor(window_t *win, glui32 xpos, glui32 ypos)
 
     gli_window_print(win);
 
-    (*jni_env)->CallVoidMethod(INSTANCE_M(win->jwin, GLKWINDOW_CURSOR),
+    (*jni_env)->CallVoidMethod(WIN_M(win->jwin, CURSOR),
             (jint)xpos, (jint)ypos);
     jni_check_exc();
 }
@@ -251,7 +250,7 @@ static void gli_request_char_event(window_t *win, int unicode)
     }
 
     (*jni_env)->CallVoidMethod(
-            INSTANCE_M(win->jwin, GLKWINDOW_REQUESTCHAR),
+            WIN_M(win->jwin, REQUESTCHAR),
             junicode);
     jni_check_exc();
 }
@@ -275,8 +274,7 @@ void glk_cancel_char_event(window_t *win)
 
     if (win->text) {
         if (win->text->kb_request & KB_CHAR_REQ) {
-            (*jni_env)->CallVoidMethod(
-                    INSTANCE_M(win->jwin, GLKWINDOW_CANCELCHAR));
+            (*jni_env)->CallVoidMethod(WIN_M(win->jwin, CANCELCHAR));
             jni_check_exc();
             win->text->kb_request = 0;
         }
@@ -323,7 +321,7 @@ static void gli_request_line_event(window_t *win, char *buf, glui32 *ubuf,
         intbuf = (*jni_env)->CallObjectMethod(
                 INSTANCE_M(bytebuf, BYTEBUFFER_ASINTBUF));
         (*jni_env)->CallVoidMethod(
-                INSTANCE_M(win->jwin, GLKWINDOW_REQUESTLINEUNI),
+                WIN_M(win->jwin, REQUESTLINEUNI),
                 intbuf, (jint)maxlen, (jint)initlen);
         DELETE_LOCAL(intbuf);
         if (jni_check_exc()) {
@@ -331,7 +329,7 @@ static void gli_request_line_event(window_t *win, char *buf, glui32 *ubuf,
         }
     } else {
         (*jni_env)->CallVoidMethod(
-                INSTANCE_M(win->jwin, GLKWINDOW_REQUESTLINE),
+                WIN_M(win->jwin, REQUESTLINE),
                 bytebuf, (jint)maxlen, (jint)initlen);
         if (jni_check_exc()) {
             goto done;
@@ -380,7 +378,7 @@ void glk_cancel_line_event(window_t *win, event_t *ev)
 
     if (win->text->kb_request & KB_LINE_REQ) {
         int len = (*jni_env)->CallIntMethod(
-                INSTANCE_M(win->jwin, GLKWINDOW_CANCELLINE));
+                WIN_M(win->jwin, CANCELLINE));
         if (!jni_check_exc()) {
             ev->type = evtype_LineInput;
             ev->win = win;
@@ -404,7 +402,7 @@ void gli_window_set_style(window_t *win, glui32 val)
 
     gli_window_print(win);
 
-    (*jni_env)->CallVoidMethod(INSTANCE_M(win->jwin, GLKWINDOW_STYLE),
+    (*jni_env)->CallVoidMethod(WIN_M(win->jwin, STYLE),
             (jint)val);
     jni_check_exc();
 
@@ -431,7 +429,7 @@ glui32 glk_style_distinguish(window_t *win, glui32 styl1, glui32 styl2)
     }
 
     res = (*jni_env)->CallBooleanMethod(
-            INSTANCE_M(win->jwin, GLKWINDOW_DISTINGUISH),
+            WIN_M(win->jwin, DISTINGUISH),
             (jint)styl1, (jint)styl2);
     if (jni_check_exc()) {
         return FALSE;
@@ -459,7 +457,7 @@ glui32 glk_style_measure(window_t *win, glui32 styl, glui32 hint,
     }
 
     res = (*jni_env)->CallIntMethod(
-            INSTANCE_M(win->jwin, GLKWINDOW_MEASURESTYLE),
+            WIN_M(win->jwin, MEASURESTYLE),
             (jint)styl, (jint)hint);
     if (jni_check_exc()) {
         return FALSE;
@@ -485,7 +483,7 @@ void gli_window_set_hyperlink(window_t *win, glui32 val)
     gli_window_print(win);
 
     (*jni_env)->CallVoidMethod(
-            INSTANCE_M(win->jwin, GLKWINDOW_SETLINK), (jint)val);
+            WIN_M(win->jwin, SETLINK), (jint)val);
     jni_check_exc();
 
     win->text->curr_linkval = val;
@@ -504,8 +502,7 @@ void glk_request_hyperlink_event(winid_t win)
     }
 
     if (!win->text->link_request) {
-        (*jni_env)->CallVoidMethod(
-                INSTANCE_M(win->jwin, GLKWINDOW_REQUESTLINK));
+        (*jni_env)->CallVoidMethod(WIN_M(win->jwin, REQUESTLINK));
         if (!jni_check_exc()) {
             win->text->link_request = TRUE;
         }
@@ -523,8 +520,7 @@ void glk_cancel_hyperlink_event(winid_t win)
     }
 
     if (win->text->link_request) {
-        (*jni_env)->CallVoidMethod(
-                INSTANCE_M(win->jwin, GLKWINDOW_CANCELLINK));
+        (*jni_env)->CallVoidMethod(WIN_M(win->jwin, CANCELLINK));
         jni_check_exc();
         win->text->link_request = FALSE;
     }
