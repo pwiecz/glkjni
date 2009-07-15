@@ -31,12 +31,12 @@ public interface GlkSChannel {
      *           either be -1 (meaning repeat forever) or a positive
      *           number.
      * @param notify
-     *           True if a sound notification event should occur when
+     *           Non-zero if a sound notification event should occur when
      *           the sound finishes playing.
      * @return
      *           True if the sound started playing.
      */
-    boolean play(int num, int repeats, boolean notify);
+    boolean play(int num, int repeats, int notify);
 
     /**
      * Forwarded from {@code glk_schannel_stop}, or from
