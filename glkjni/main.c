@@ -148,6 +148,38 @@ glui32 glk_gestalt_ext(glui32 sel, glui32 val, glui32 *arr, glui32 arrlen)
         }
     }
 
+    switch (sel) {
+    case gestalt_Version:
+        return 0x00000700;
+    case gestalt_LineInput:
+        if (val >= 32 && val <= 126) {
+            return TRUE;
+        }
+        if (val <= 31 || (val >= 127 && val <= 159)) {
+            return FALSE;
+        }
+        break;
+    case gestalt_CharOutput:
+        if (val <= 9 || (val >= 11 && val <= 31)
+                || (val >= 127 && val <= 159)) {
+            return FALSE;
+        }
+        break;
+    case gestalt_MouseInput:
+        switch (val) {
+        case wintype_AllTypes:
+        case wintype_Blank:
+        case wintype_Pair:
+            return FALSE;
+        }
+        break;
+    case gestalt_DrawImage:
+        if (val != wintype_TextBuffer && val != wintype_Graphics) {
+            return FALSE;
+        }
+        break;
+    }
+
     res = (*jni_env)->CallIntMethod(GLK_M(GESTALT),
             (jint)sel, (jint)val, ints);
     jni_exit_on_exc();

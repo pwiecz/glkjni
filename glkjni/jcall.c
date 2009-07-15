@@ -114,7 +114,7 @@ methodcache_t jni_mcache[] = {
         METHOD(GLKWINDOW, FILLRECT, "fillRect", "(IIIII)V"),
 
         METHOD(GLKCHANNEL, VOLUME, "setVolume", "(I)V"),
-        METHOD(GLKCHANNEL, PLAY, "play", "(IIZ)Z"),
+        METHOD(GLKCHANNEL, PLAY, "play", "(III)Z"),
         METHOD(GLKCHANNEL, STOP, "stop", "()V"),
 
         METHOD(STRING, FROMNATIVE, "<init>", "([B)V"),
