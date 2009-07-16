@@ -68,4 +68,12 @@ public class GlkFactory {
      * @return 0 if the interpreter exited normally
      */
     public static native int run();
+    
+
+    /**
+     * Call this method to cleanly shutdown the interpreter. Don't
+     * forget to call it if {@link #startup(Glk, String[])} returns
+     * false.
+     */
+    public static native void shutdown();
 }
