@@ -35,6 +35,24 @@ struct glk_schannel_struct {
 /* Linked list of all sound channels. */
 static schannel_t *gli_schanlist = NULL;
 
+void sound_c_shutdown(void)
+{
+    schannel_t *curr, *next;
+
+    curr = gli_schanlist;
+
+    while (curr) {
+        next = curr->next;
+        if (curr->jchan) {
+            DELETE_GLOBAL(curr->jchan);
+        }
+        free(curr);
+        curr = next;
+    }
+
+    gli_schanlist = NULL;
+}
+
 /* Returns the dispatch rock for SCHAN. */
 gidispatch_rock_t gli_schan_get_disprock(schannel_t *schan)
 {

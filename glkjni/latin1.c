@@ -1,6 +1,9 @@
 #include "glk.h"
 #include "glkjni.h"
 
+/*
+ * These variables should be persistent across invocations.
+ */
 static unsigned char char_tolower_table[256];
 static unsigned char char_toupper_table[256];
 

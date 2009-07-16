@@ -40,6 +40,35 @@ struct glk_fileref_struct {
 /* Linked list of all filerefs */
 static fileref_t *gli_filereflist = NULL;
 
+static void gli_fileref_delete(fileref_t *fref)
+{
+    if (fref->file) {
+        DELETE_GLOBAL(fref->file);
+    }
+
+    if (fref->filename) {
+        free(fref->filename);
+        fref->filename = NULL;
+    }
+
+    free(fref);
+}
+
+void fileref_c_shutdown(void)
+{
+    fileref_t *curr, *next;
+
+    curr = gli_filereflist;
+
+    while (curr) {
+        next = curr->next;
+        gli_fileref_delete(curr);   /* This frees curr. */
+        curr = next;
+    }
+
+    gli_filereflist = NULL;
+}
+
 gidispatch_rock_t gli_fref_get_disprock(frefid_t fref)
 {
     return fref->disprock;
@@ -255,20 +284,6 @@ done:
         gli_strict_warning("fileref_create_by_prompt: unable to create fileref");
     }
     return fref;
-}
-
-static void gli_fileref_delete(fileref_t *fref)
-{
-    if (fref->file) {
-        DELETE_GLOBAL(fref->file);
-    }
-
-    if (fref->filename) {
-        free(fref->filename);
-        fref->filename = NULL;
-    }
-
-    free(fref);
 }
 
 static void gli_fileref_unregister(fileref_t *fref)
