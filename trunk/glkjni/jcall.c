@@ -519,6 +519,8 @@ void fileref_c_shutdown(void);
 
 static void JNICALL jni_glkshutdown(JNIEnv *env, jclass class)
 {
+    jni_env = env;
+
     gi_blorb_c_shutdown();
     glkjni_c_shutdown();
     event_c_shutdown();

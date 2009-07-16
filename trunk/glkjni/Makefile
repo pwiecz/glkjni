@@ -12,10 +12,10 @@ OPTIONS = -Wall -g
 #JVM_LIB = -LC:\Program\\ Files\Java\jdk1.x.x\lib -ljvm
 
 ## OS X JNI
-#JNI_INCLUDES = -I/Library/Java/Home/include
-#JVM_LIB = \
-#  -L/System/Library/Frameworks/JavaVM.framework/Libraries \
-#  -framework JavaVM -ljvm
+JNI_INCLUDES = -I/Library/Java/Home/include
+JVM_LIB = \
+  -L/System/Library/Frameworks/JavaVM.framework/Libraries \
+  -framework JavaVM -ljvm
 
 ## Linux JNI
 #JNI_INCLUDES = \
