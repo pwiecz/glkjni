@@ -38,6 +38,14 @@ gidispatch_rock_t (*gli_register_arr)(void *array, glui32 len,
 void (*gli_unregister_arr)(void *array, glui32 len, char *typecode,
     gidispatch_rock_t objrock) = NULL;
 
+void glkjni_c_shutdown(void)
+{
+    gli_register_obj = NULL;
+    gli_unregister_obj = NULL;
+    gli_register_arr = NULL;
+    gli_unregister_arr = NULL;
+}
+
 #ifdef ANDROID
 
 jmp_buf jump_error;

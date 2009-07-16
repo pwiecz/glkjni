@@ -131,6 +131,26 @@ methodcache_t jni_mcache[] = {
                 "()Ljava/nio/IntBuffer;")
 };
 
+static void jcall_c_shutdown(void) {
+    /*
+     * We don't need to worry about:
+     * - jni_env which is reset by jni_glkmain
+     * - jni_mccache/jni_ccache which can only be set in JNI_OnLoad
+     *   (and should never need to be reset)
+     */
+
+    if (startdata) {
+        free(startdata->argv);
+        free(startdata);
+        startdata = NULL;
+    }
+
+    if (glkobj) {
+        DELETE_GLOBAL(glkobj);
+        glkobj = NULL;
+    }
+}
+
 void jni_no_mem()
 {
     gli_fatal("GlkJNI: the JVM was unable to allocate sufficient memory\n");
@@ -444,7 +464,16 @@ static jboolean JNICALL jni_glkstartup(JNIEnv *env, jclass class,
     }
 #endif
 
-    glkobj = jni_new_global(gobj);
+    /*
+     * Calling jni_new_global would result in a warning,
+     * since it calls DeleteLocalRef on its argument,
+     * and objects passed in from Java (instead of created in C)
+     * are not passed in as local references.
+     */
+    glkobj = (*jni_env)->NewGlobalRef(jni_env, gobj);
+    if (!glkobj) {
+        jni_no_mem();
+    }
 
     argv = (char **)gli_malloc((1 + jArgc) * sizeof(char **));
 
@@ -479,8 +508,47 @@ whoops:
     return FALSE;
 }
 
-#ifdef ANDROID
+/* Prototypes for the shutdown functions. */
+void gi_blorb_c_shutdown(void);
+void glkjni_c_shutdown(void);
+void sound_c_shutdown(void);
+void stream_c_shutdown(void);
+void window_c_shutdown(void);
+void event_c_shutdown(void);
+void fileref_c_shutdown(void);
 
+static void JNICALL jni_glkshutdown(JNIEnv *env, jclass class)
+{
+    gi_blorb_c_shutdown();
+    glkjni_c_shutdown();
+    event_c_shutdown();
+    sound_c_shutdown();
+    stream_c_shutdown();
+    window_c_shutdown();
+    fileref_c_shutdown();
+    jcall_c_shutdown();
+}
+
+static void jni_register_startup(char *glkpackage)
+{
+    JNINativeMethod nm;
+    char msig[256];
+
+    strcpy(msig, "(L");
+    strcat(msig, glkpackage);
+    strcat(msig, "/Glk;[Ljava/lang/String;)Z");
+
+    nm.name = "startup";
+    nm.signature = msig;
+    nm.fnPtr = jni_glkstartup;
+
+    (*jni_env)->RegisterNatives(jni_env,
+            jni_ccache[GLKFACTORY_CLASS].class, &nm, 1);
+    jni_exit_on_exc();  /* This method is required. */
+
+}
+
+#ifdef ANDROID
 static int JNICALL jni_glkmain(JNIEnv *env, jclass class)
 {
     jni_env = env;
@@ -502,35 +570,52 @@ whoops:
     return 1;
 }
 
-#endif
-
-static void jni_register_natives(char *glkpackage)
+static void jni_register_main()
 {
     JNINativeMethod nm;
-    char msig[256];
 
-    strcpy(msig, "(L");
-    strcat(msig, glkpackage);
-    strcat(msig, "/Glk;[Ljava/lang/String;)Z");
-
-    nm.name = "startup";
-    nm.signature = msig;
-    nm.fnPtr = jni_glkstartup;
-
-    (*jni_env)->RegisterNatives(jni_env,
-            jni_ccache[GLKFACTORY_CLASS].class, &nm, 1);
-    jni_exit_on_exc();
-
-#ifdef ANDROID
     nm.name = "run";
     nm.signature = "()I";
     nm.fnPtr = jni_glkmain;
 
     (*jni_env)->RegisterNatives(jni_env,
             jni_ccache[GLKFACTORY_CLASS].class, &nm, 1);
+    jni_exit_on_exc();  /* This method is only required by Android. */
+}
+#endif
+
+static void jni_register_shutdown()
+{
+    JNINativeMethod nm;
+
+    nm.name = "shutdown";
+    nm.signature = "()V";
+    nm.fnPtr = jni_glkshutdown;
+
+    (*jni_env)->RegisterNatives(jni_env,
+            jni_ccache[GLKFACTORY_CLASS].class, &nm, 1);
+#ifdef ANDROID
+    /* jni_glkshutdown is required by Android... */
     jni_exit_on_exc();
+#else
+    /* ... but optional otherwise. */
+    jthrowable exc = (*jni_env)->ExceptionOccurred(jni_env);
+    if (exc) {
+        (*jni_env)->ExceptionClear(jni_env);
+        DELETE_LOCAL(exc);
+    }
 #endif
 }
+
+static void jni_register_natives(char *glkpackage)
+{
+    jni_register_startup(glkpackage);
+#ifdef ANDROID
+    jni_register_main();
+#endif
+    jni_register_shutdown();
+}
+
 
 #ifndef ANDROID
 

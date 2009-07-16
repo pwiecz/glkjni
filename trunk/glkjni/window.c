@@ -31,6 +31,34 @@ static window_t *gli_windowlist = NULL;
 /* The topmost window. */
 window_t *gli_rootwin = NULL;
 
+static void gli_window_delete(window_t *win)
+{
+    DELETE_GLOBAL(win->jwin);
+
+    if (win->text) {
+        free(win->text->outbuf);
+        free(win->text);
+    }
+}
+
+void window_c_shutdown(void)
+{
+    window_t *curr, *next;
+
+    curr = gli_windowlist;
+
+    while (curr) {
+        next = curr->next;
+        gli_window_delete(curr);
+        free(curr);
+        curr = next;
+    }
+
+    gli_windowlist = NULL;
+    gli_rootwin = NULL;
+    gli_windowid = 1;
+}
+
 /* Tests that WINTYPE represents a text window. */
 int gli_text_wintype(glui32 wintype)
 {
@@ -250,13 +278,7 @@ static void gli_unregister_window(window_t *win)
         next->prev = prev;
     }
 
-    DELETE_GLOBAL(win->jwin);
-
-    if (win->text) {
-        gli_unregister_win_input(win);
-        free(win->text->outbuf);
-        free(win->text);
-    }
+    gli_window_delete(win);
 
     free(win);
 }
@@ -490,7 +512,9 @@ static void gli_window_list_close(window_t *win)
     }
 
     /* Remove all marked windows from the window list. */
-    for (dwin = gli_windowlist; dwin; dwin = dwin->next) {
+    dwin = gli_windowlist;
+
+    while (dwin) {
         if (dwin->deletemark) {
             temp = dwin->next;
             gli_unregister_window(dwin);

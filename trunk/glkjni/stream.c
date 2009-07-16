@@ -39,6 +39,32 @@ struct glk_stream_struct {
 static stream_t *gli_streamlist = NULL; /* linked list of all streams */
 static stream_t *gli_currentstr = NULL; /* the current output stream */
 
+void stream_c_shutdown(void)
+{
+    stream_t *curr, *next;
+
+    curr = gli_streamlist;
+
+    while (curr) {
+        next = curr->next;
+
+        if (curr->type == strtype_File) {
+            fstream_delete(curr->data);
+        }
+
+        /* This will be handled by window_c_shutdown. */
+        if (curr->type != strtype_Window) {
+            free(curr->data);
+        }
+
+        free(curr);
+        curr = next;
+    }
+
+    gli_streamlist = NULL;
+    gli_currentstr = NULL;
+}
+
 gidispatch_rock_t gli_str_get_disprock(strid_t str)
 {
     return str->disprock;

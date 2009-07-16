@@ -23,6 +23,10 @@
 
 static jint gli_timer_interval;
 
+void event_c_shutdown(void) {
+    gli_timer_interval = 0;
+}
+
 static int gli_process_event(event_t *event, glui32 type, glui32 id,
         glui32 val1, glui32 val2)
 {
