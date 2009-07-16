@@ -388,5 +388,12 @@ public interface GlkWindow {
      */
     void fillRect(int color, int left, int top, int width,
             int height);
+    
+    /**
+     * Returns the window id of the window. This is the value of the {@code id}
+     * parameter from the call to
+     * {@link Glk#windowOpen(GlkWindow, int, int, int, int, GlkWindow[])}.
+     * @return the window id of the window.
+     */
     int getId();
 }
