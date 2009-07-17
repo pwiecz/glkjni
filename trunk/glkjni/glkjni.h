@@ -117,11 +117,13 @@ gidispatch_rock_t gli_schan_get_disprock(schanid_t schan);
 void gli_schan_set_disprock(schanid_t schan);
 
 void gli_exit(void);
+void gli_interrupted(void);
 
 #ifdef ANDROID
 extern jmp_buf jump_error;
 #define JMP_WHOOPS 1
 #define JMP_DONE 2
+#define JMP_INT 3
 #endif
 
 #define gli_event_clearevent(evp)  \

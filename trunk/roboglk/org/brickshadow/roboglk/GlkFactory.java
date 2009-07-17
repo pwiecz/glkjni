@@ -17,13 +17,14 @@
 
 package org.brickshadow.roboglk;
 
+
 /**
  * Defines the methods needed to start an interpreter.
  * <p>
  * For example:
  * <pre>
  *   void startInterpreter() {
- *       Thread terpThread = new Thread(new Runnable() {
+ *       terpThread = new Thread(new Runnable() {
  *           public void run() {
  *               if (GlkFactory.startup("progname", "story.z5") {
  *                   int err = GlkFactory.run();
@@ -38,6 +39,11 @@ package org.brickshadow.roboglk;
  *       });
  *       terpThread.start();
  *   }
+ * </pre>
+ * <p>
+ * To stop the interpreter, interrupt the interpreter thread, e.g.
+ * <pre>
+ *   terpThread.interrupt();
  * </pre>
  */
 public class GlkFactory {
@@ -65,7 +71,8 @@ public class GlkFactory {
      * Call ths method to start the interpreter. All Glk bridge methods
      * will be called on the thread that this method is called from.
      * 
-     * @return 0 if the interpreter exited normally
+     * @return 0 if the interpreter exited normally; 1 for abnormal
+     *         termination; 2 if the interpreter thread was interrupted
      */
     public static native int run();
     

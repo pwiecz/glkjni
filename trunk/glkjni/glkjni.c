@@ -50,8 +50,14 @@ void glkjni_c_shutdown(void)
 
 jmp_buf jump_error;
 
-void gli_exit() {
+void gli_exit()
+{
     longjmp(jump_error, JMP_WHOOPS);
+}
+
+void gli_interrupted()
+{
+    longjmp(jump_error, JMP_INT);
 }
 
 void gli_fatal(char *msg)
@@ -62,7 +68,13 @@ void gli_fatal(char *msg)
 
 #else
 
-void gli_exit() {
+void gli_exit()
+{
+    exit(EXIT_FAILURE);
+}
+
+void gli_interrupted()
+{
     exit(EXIT_FAILURE);
 }
 

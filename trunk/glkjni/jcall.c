@@ -44,7 +44,8 @@ classcache_t jni_ccache[] = {
         { STRING_CLASS, "java/lang/String" },
         { FILE_CLASS, "java/io/File" },
         { BUFFER_CLASS, "java/nio/Buffer"},
-        { BYTEBUFFER_CLASS, "java/nio/ByteBuffer" }
+        { BYTEBUFFER_CLASS, "java/nio/ByteBuffer" },
+        { THREAD_CLASS, "java/lang/Thread" }
 };
 
 #define METHOD(c, m, name, sig) \
@@ -59,6 +60,7 @@ methodcache_t jni_mcache[] = {
 #endif
         METHOD(FILE, CREATETEMP, "createTempFile",
                 "(Ljava/lang/String;Ljava/lang/String;)Ljava/io/File;"),
+        METHOD(THREAD, INTERRUPTED, "interrupted", "()Z"),
 
         /* Instance methods. */
 
@@ -178,10 +180,18 @@ jobject jni_new_global(jobject localref)
  */
 void jni_exit_on_exc()
 {
+    jboolean interrupted;
+
     if ((*jni_env)->ExceptionCheck(jni_env)) {
         (*jni_env)->ExceptionDescribe(jni_env);
         (*jni_env)->ExceptionClear(jni_env);
         gli_exit();
+    }
+
+    interrupted = (*jni_env)->CallStaticBooleanMethod(
+            STATIC_M(THREAD, INTERRUPTED));
+    if (interrupted) {
+        gli_interrupted();
     }
 }
 
@@ -191,7 +201,15 @@ void jni_exit_on_exc()
  */
 int jni_check_exc()
 {
+   jboolean interrupted;
    jthrowable exc = (*jni_env)->ExceptionOccurred(jni_env);
+
+   interrupted = (*jni_env)->CallStaticBooleanMethod(
+            STATIC_M(THREAD, INTERRUPTED));
+   if (interrupted) {
+       gli_interrupted();
+   }
+
    if (!exc) {
        return FALSE;
    }
@@ -558,20 +576,17 @@ static int JNICALL jni_glkmain(JNIEnv *env, jclass class)
     jni_env = env;
 
     switch (setjmp(jump_error)) {
+    case JMP_INT:
+        return 2;
     case JMP_WHOOPS:
-        goto whoops;
-        break;
+        return 1;
     case JMP_DONE:
-        goto done;
-        break;
+        return 0;
     }
 
     glk_main();
 
-done:
     return 0;
-whoops:
-    return 1;
 }
 
 static void jni_register_main()
