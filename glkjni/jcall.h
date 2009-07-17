@@ -48,6 +48,7 @@ enum ClassID {
     FILE_CLASS,
     BUFFER_CLASS,
     BYTEBUFFER_CLASS,
+    THREAD_CLASS,
     MAX_CLASS_ID
 };
 
@@ -72,6 +73,7 @@ enum SMethodID {
 #else
     FILE_CREATETEMP_METHOD = 0,
 #endif
+    THREAD_INTERRUPTED_METHOD,
     MAX_SMETHOD_ID
 };
 

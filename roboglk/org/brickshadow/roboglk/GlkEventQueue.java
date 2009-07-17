@@ -21,6 +21,7 @@ import java.util.LinkedList;
 
 import android.os.Message;
 
+
 /**
  * An event queue which follows the requirements of the Glk spec, It
  * assumes that {@link #select()} and {@link #poll()} will only be
@@ -204,7 +205,7 @@ public class GlkEventQueue {
     
     /**
      * Blocks until an event message is available and returns it.
-     * See {link {@link Glk#select(int[])}}.
+     * See {@link Glk#select(int[])}.
      * 
      * @return an event message 
      */
@@ -226,8 +227,8 @@ public class GlkEventQueue {
             
             return msg;
         } catch (InterruptedException e) {
-            // TODO: throw a more useful exception
-            throw new RuntimeException();
+            Thread.currentThread().interrupt();
+            return null;
         }
     }
     
