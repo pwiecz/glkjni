@@ -62,7 +62,9 @@ methodcache_t jni_mcache[] = {
 
         /* Instance methods. */
 
+#ifndef ANDROID
         METHOD(GLK, EXIT, "exit", "()V"),
+#endif
         METHOD(GLK, GESTALT, "gestalt", "(II[I)I"),
         METHOD(GLK, WINDOWOPEN, "windowOpen",
                 "see jni_init_methods"),
