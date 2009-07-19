@@ -1,0 +1,3 @@
+In order to build this project in Eclipse, import it and then configure the
+build path to link in the roboglk source.
+
