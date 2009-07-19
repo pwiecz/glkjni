@@ -67,8 +67,9 @@ public class RoboTextBufferWindow extends GlkTextBufferWindow {
     public RoboTextBufferWindow(Activity activity, GlkEventQueue queue,
             TextBufferIO io, int id) {
         this.activity = activity;
-        this.io = io;
         this.queue = queue;
+        this.io = io;
+        io.setWindow(this);
         windowId = id;
     }
     
@@ -105,6 +106,9 @@ public class RoboTextBufferWindow extends GlkTextBufferWindow {
      */
     public void recordKey(int c) {
         switch (c) {
+        case KeyEvent.KEYCODE_DEL:
+            processKey(GlkKeycode.Delete);
+            break;
         case KeyEvent.KEYCODE_DPAD_UP:
             processKey(GlkKeycode.Up);
             break;
@@ -301,6 +305,9 @@ public class RoboTextBufferWindow extends GlkTextBufferWindow {
                     }
                 }
                 int len = initialString.length();
+                if (len > maxlen) {
+                    len = maxlen;
+                }
                 initialChars = new char[len];
                 initialString.getChars(0, len, initialChars, 0);
             }
