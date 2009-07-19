@@ -21,7 +21,7 @@ public abstract class TextBufferIO {
     /**
      * The glk window wrapper associated with a view.
      */
-    protected final RoboTextBufferWindow win;
+    protected RoboTextBufferWindow win;
     
     /**
      * During line input, the number of characters entered so far.
@@ -35,8 +35,14 @@ public abstract class TextBufferIO {
      */
     protected char[] inputChars;
     
-    public TextBufferIO(RoboTextBufferWindow win) {
+    /**
+     * Creates a new {@code TextBufferIO}.
+     */
+    public TextBufferIO() {
         currInputLength = 0;
+    }
+    
+    public void setWindow(RoboTextBufferWindow win) {
         this.win = win;
     }
 
@@ -97,7 +103,7 @@ public abstract class TextBufferIO {
      * <p>
      * When input is finished, {@link #sendLineToGlk()} should be called.
      * <p>
-     * Implementations may wish to use the values of {@code maxlen}
+     * Implementations should use the values of {@code maxlen}
      * and {@code unicode} to guide their behavior.
      * 
      * @param unicode
