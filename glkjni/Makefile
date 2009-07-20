@@ -12,10 +12,10 @@ OPTIONS = -Wall -g
 #JVM_LIB = -LC:\Program\\ Files\Java\jdk1.x.x\lib -ljvm
 
 ## OS X JNI
-JNI_INCLUDES = -I/Library/Java/Home/include
-JVM_LIB = \
-  -L/System/Library/Frameworks/JavaVM.framework/Libraries \
-  -framework JavaVM -ljvm
+#JNI_INCLUDES = -I/Library/Java/Home/include
+#JVM_LIB = \
+#  -L/System/Library/Frameworks/JavaVM.framework/Libraries \
+#  -framework JavaVM -ljvm
 
 ## Linux JNI
 #JNI_INCLUDES = \
@@ -23,8 +23,8 @@ JVM_LIB = \
 #  -I/path/to/jdk/include/linux
 #JVM_LIB = -L/path/to/jre/lib/i386/client -ljvm
 
-#JNI_INCLUDES = -I/opt/jdk/include -I/opt/jdk/include/linux
-#JVM_LIB = -L/opt/jdk/jre/lib/i386/client -ljvm
+JNI_INCLUDES = -I/opt/jdk/include -I/opt/jdk/include/linux
+JVM_LIB = -L/opt/jdk/jre/lib/i386/client -ljvm
 
 CFLAGS = $(OPTIONS) $(JNI_INCLUDES)
 

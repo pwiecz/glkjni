@@ -3,16 +3,16 @@ package org.brickshadow.modeltest;
 
 import org.brickshadow.roboglk.Glk;
 import org.brickshadow.roboglk.GlkFactory;
+import org.brickshadow.roboglk.window.TextBufferView;
 
 import android.app.Activity;
 import android.os.Bundle;
 import android.util.Log;
-import android.widget.TextView;
 
 
 public class ModelTest extends Activity {
     Glk glk;
-    TextView tv;
+    TextBufferView tv;
     Thread terpThread;
     
     /** Called when the activity is first created. */
@@ -20,14 +20,25 @@ public class ModelTest extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         
-        tv = new SimpleTextBufferView(this);
+        tv = new TextBufferView(this);
         glk = new ModelGlk(this, tv);
         
         tv.setFocusable(true);
-        tv.setCursorVisible(false);
         setContentView(tv);
-        
-        startInterpreter();
+    }
+    
+
+    /**
+     * Waits for the main window to be focused before starting the
+     * interpreter. In a real app, the interpreter is not run on startup
+     * so you shouldn't have to worry about this.
+     */
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (terpThread == null && hasFocus == true) {
+            startInterpreter();
+        }
     }
     
     private void startInterpreter() {
