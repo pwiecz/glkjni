@@ -1,4 +1,4 @@
-package org.brickshadow.modeltest;
+package org.brickshadow.roboglk.window;
 
 
 import org.brickshadow.roboglk.window.RoboTextBufferWindow;
@@ -14,7 +14,7 @@ import android.view.KeyEvent;
 import android.view.View;
 
 
-public class ModelTextBufferIO extends TextBufferIO {
+public class StandardTextBufferIO extends TextBufferIO {
 
     private boolean charInput;
     private boolean lineInput;
@@ -29,7 +29,7 @@ public class ModelTextBufferIO extends TextBufferIO {
     private int moreLines;
     private int inputLineStart;
     
-    public ModelTextBufferIO(final TextBufferView tv) {
+    public StandardTextBufferIO(final TextBufferView tv) {
         this.tv = tv;
         
         listener = TextKeyListener.getInstance(false, 
@@ -157,25 +157,6 @@ public class ModelTextBufferIO extends TextBufferIO {
         return tv.getHeight() / tv.getLineHeight();
     }
     
-    private boolean needsMorePrompt(int linesAdded) {
-        linesSinceInput += linesAdded;
-        
-        int viewLines = getViewLines();
-        // TODO: maybe >= instead? or >= viewLines - 1 ?
-        if (linesSinceInput > viewLines) {
-            moreLines = linesSinceInput - viewLines;
-            
-            morePrompt = true; // TODO: show the prompt!
-            
-            tv.scrollBy(0, inputLineStart * tv.getLineHeight());
-            return true;
-        } else {
-            inputLineStart -= linesAdded;
-        }
-        
-        return false;
-    }
-    
     /* Prints text and decides if the MORE prompt is needed. */
     private void textBufPrint(CharSequence str) {
         
@@ -200,9 +181,29 @@ public class ModelTextBufferIO extends TextBufferIO {
             return;
         }
         
-        text = (Spannable) tv.getText();
         Selection.setSelection(text, text.length());
     }
+    
+    private boolean needsMorePrompt(int linesAdded) {
+        linesSinceInput += linesAdded;
+        
+        int viewLines = getViewLines();
+        // TODO: maybe >= instead? or >= viewLines - 1 ?
+        if (linesSinceInput > viewLines) {
+            moreLines = linesSinceInput - viewLines;
+            morePrompt = true;
+            tv.scrollBy(0, inputLineStart * tv.getLineHeight());
+            
+            // TODO: actually show the prompt!
+            
+            return true;
+        } else {
+            inputLineStart -= linesAdded;
+        }
+        
+        return false;
+    }
+    
 
     /* When echoing text, we don't have to worry about the MORE prompt,
      * so we always advance the cursor to the end of the text.

@@ -1,5 +1,6 @@
 package org.brickshadow.modeltest;
 
+
 import java.io.File;
 
 import org.brickshadow.roboglk.Glk;
@@ -8,11 +9,13 @@ import org.brickshadow.roboglk.GlkSChannel;
 import org.brickshadow.roboglk.GlkWinType;
 import org.brickshadow.roboglk.GlkWindow;
 import org.brickshadow.roboglk.window.RoboTextBufferWindow;
+import org.brickshadow.roboglk.window.StandardTextBufferIO;
+import org.brickshadow.roboglk.window.TextBufferView;
 
 import android.app.Activity;
 import android.os.Message;
 import android.util.Log;
-import android.widget.TextView;
+
 
 public class ModelGlk implements Glk {
 
@@ -21,9 +24,9 @@ public class ModelGlk implements Glk {
     private final Activity activity;
     
     private RoboTextBufferWindow mainWin;
-    private final TextView tv;
+    private final TextBufferView tv;
     
-    public ModelGlk(Activity activity, TextView tv) {
+    public ModelGlk(Activity activity, TextBufferView tv) {
         this.activity = activity;
         this.tv = tv;
         eventQueue = new GlkEventQueue();
@@ -104,12 +107,14 @@ public class ModelGlk implements Glk {
         if (wintype != GlkWinType.TextBuffer) {
             return;
         }
+
         
-        wins[0] = new RoboTextBufferWindow(
+        mainWin = new RoboTextBufferWindow(
                 activity,
                 eventQueue,
-                new ModelTextBufferIO(tv),
+                new StandardTextBufferIO(tv),
                 id);
+        wins[0] = mainWin;
     }
 
 }
