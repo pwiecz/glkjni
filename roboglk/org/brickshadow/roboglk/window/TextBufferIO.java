@@ -1,5 +1,7 @@
 package org.brickshadow.roboglk.window;
 
+import org.brickshadow.roboglk.GlkStyle;
+
 
 /**
  * Text-buffer I/O methods. Each view that will display a text-buffer
@@ -175,4 +177,10 @@ public abstract class TextBufferIO {
      * @param str the string to print.
      */
     public abstract void doPrint(String str);
+    
+    /**
+     * Changes the display style for newly-printed text. 
+     * @param style one of the {@link GlkStyle} constants
+     */
+    public abstract void doStyle(int style);
 }
