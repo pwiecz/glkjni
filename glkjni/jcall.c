@@ -549,6 +549,12 @@ static void JNICALL jni_glkshutdown(JNIEnv *env, jclass class)
     window_c_shutdown();
     fileref_c_shutdown();
     jcall_c_shutdown();
+
+    /* TODO: this will have to switch on the program name to
+     *       call the correct function, once we have multiple
+     *       interpreters in the same library.
+     */
+    glk_shutdown();
 }
 
 static void jni_register_startup(char *glkpackage)
