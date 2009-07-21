@@ -428,8 +428,13 @@ public class RoboTextBufferWindow extends GlkTextBufferWindow {
     }
 
     @Override
-    public void setStyle(int val) {
-        /* Not currently implemented. */
+    public void setStyle(final int val) {
+        activity.runOnUiThread(new Runnable() {
+        	@Override
+        	public void run() {
+        		io.doStyle(val);
+        	}
+        });
     }
     
     @Override

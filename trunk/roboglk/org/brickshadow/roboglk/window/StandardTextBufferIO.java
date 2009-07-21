@@ -19,7 +19,7 @@ public class StandardTextBufferIO extends TextBufferIO {
     private boolean charInput;
     private boolean lineInput;
     
-    private final TextBufferView tv;
+    protected final TextBufferView tv;
     
     private final TextKeyListener listener;
     private SpannableStringBuilder tb;
@@ -274,5 +274,8 @@ public class StandardTextBufferIO extends TextBufferIO {
     public void stopLineInput() {
         lineInput = false;
     }
+    
+    @Override
+    public void doStyle(int style) {}
 
 }
