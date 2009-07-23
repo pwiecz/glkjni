@@ -237,7 +237,7 @@ public class RoboTextBufferWindow extends GlkTextBufferWindow {
             }
         }
     }
-
+    
     @Override
     public void print(final String str) {
         activity.runOnUiThread(new Runnable() {

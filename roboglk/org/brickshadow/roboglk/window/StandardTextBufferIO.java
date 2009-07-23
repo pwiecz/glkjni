@@ -40,51 +40,55 @@ public class StandardTextBufferIO extends TextBufferIO {
             
             @Override
             public boolean onKey(View v, int keyCode, KeyEvent event) {
-                int action = event.getAction();
-                
-                if (morePrompt && (action == KeyEvent.ACTION_DOWN)) {
-                    int viewLines = getViewLines();
-                    int scrollLines =
-                        ((moreLines > viewLines) ? viewLines : moreLines);
-                    tv.scrollBy(0, scrollLines * tv.getLineHeight());
-                    moreLines -= scrollLines;
-                    if (moreLines == 0) {
-                        
-                        morePrompt = false; // TODO: hide the prompt!
-                        
-                        textBufPrint("");
-                    }
-                    return true;
-                }
-                
-                if (!charInput && !lineInput) {
-                    return false;
-                }
-                
-                if (tb.length() != 1) {
-                    tb = new SpannableStringBuilder(" ");
-                }
-                if (Selection.getSelectionEnd(tb) != 1 ||
-                        Selection.getSelectionStart(tb) != 1) {
-                    Selection.setSelection(tb, 1);
-                }
-                
-                switch (action) {
-                case KeyEvent.ACTION_DOWN:
-                    listener.onKeyDown(v, tb, keyCode, event);
-                    break;
-                case KeyEvent.ACTION_UP:
-                    listener.onKeyUp(v, tb, keyCode, event);
-                    break;
-                }
-                
-                if (charInput) {
-                    return processSingleKey(keyCode);
-                } else {
-                    return processLineKey(keyCode);
-                }
+                return onViewKey(v, keyCode, event);
             }
         });
+    }
+    
+    protected boolean onViewKey(View v, int keyCode, KeyEvent event) {
+    	int action = event.getAction();
+        
+        if (morePrompt && (action == KeyEvent.ACTION_DOWN)) {
+            int viewLines = getViewLines();
+            int scrollLines =
+                ((moreLines > viewLines) ? viewLines : moreLines);
+            tv.scrollBy(0, scrollLines * tv.getLineHeight());
+            moreLines -= scrollLines;
+            if (moreLines == 0) {
+                
+                morePrompt = false; // TODO: hide the prompt!
+                
+                textBufPrint("");
+            }
+            return true;
+        }
+        
+        if (!charInput && !lineInput) {
+            return false;
+        }
+        
+        if (tb.length() != 1) {
+            tb = new SpannableStringBuilder(" ");
+        }
+        if (Selection.getSelectionEnd(tb) != 1 ||
+                Selection.getSelectionStart(tb) != 1) {
+            Selection.setSelection(tb, 1);
+        }
+        
+        switch (action) {
+        case KeyEvent.ACTION_DOWN:
+            listener.onKeyDown(v, tb, keyCode, event);
+            break;
+        case KeyEvent.ACTION_UP:
+            listener.onKeyUp(v, tb, keyCode, event);
+            break;
+        }
+        
+        if (charInput) {
+            return processSingleKey(keyCode);
+        } else {
+            return processLineKey(keyCode);
+        }
     }
     
     /*
@@ -152,6 +156,16 @@ public class StandardTextBufferIO extends TextBufferIO {
         this.win = win;
     }
     
+    protected void cursorToEnd() {
+    	cursorToEnd(0);
+    }
+    
+    protected void cursorToEnd(int back) {
+    	Spannable text = (Spannable) tv.getText();
+    	int len = text.length();
+    	Selection.setSelection(text, len + back);
+    }
+    
     /* TODO: account for padding? */
     private int getViewLines() {
         return tv.getHeight() / tv.getLineHeight();
@@ -165,8 +179,7 @@ public class StandardTextBufferIO extends TextBufferIO {
          * we want it to or not. So we back the cursor up until we know
          * if we should scroll to end or display the MORE prompt.  
          */
-        Spannable text = (Spannable) tv.getText();
-        Selection.setSelection(text, text.length() - 1);
+        cursorToEnd(-1);
         
         int oldLineCount = tv.getLineCount();
         tv.append(str);
@@ -181,7 +194,7 @@ public class StandardTextBufferIO extends TextBufferIO {
             return;
         }
         
-        Selection.setSelection(text, text.length());
+        cursorToEnd();
     }
     
     private boolean needsMorePrompt(int linesAdded) {
@@ -210,9 +223,7 @@ public class StandardTextBufferIO extends TextBufferIO {
      */
     private void textBufEcho(CharSequence str) {
         tv.append(str);
-        
-        Spannable text = (Spannable) tv.getText();
-        Selection.setSelection(text, text.length());
+        cursorToEnd();
     }
     
     @Override
