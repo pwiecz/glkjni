@@ -10,6 +10,7 @@ import android.text.Selection;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.method.TextKeyListener;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 
@@ -54,10 +55,10 @@ public class StandardTextBufferIO extends TextBufferIO {
                 ((moreLines > viewLines) ? viewLines : moreLines);
             tv.scrollBy(0, scrollLines * tv.getLineHeight());
             moreLines -= scrollLines;
+            
             if (moreLines == 0) {
-                
                 morePrompt = false; // TODO: hide the prompt!
-                
+
                 textBufPrint("");
             }
             return true;
@@ -156,6 +157,11 @@ public class StandardTextBufferIO extends TextBufferIO {
         this.win = win;
     }
     
+    protected void cursorOff() {
+    	Spannable text = (Spannable) tv.getText();
+    	Selection.removeSelection(text);
+    }
+    
     protected void cursorToEnd() {
     	cursorToEnd(0);
     }
@@ -205,6 +211,8 @@ public class StandardTextBufferIO extends TextBufferIO {
         if (linesSinceInput > viewLines) {
             moreLines = linesSinceInput - viewLines;
             morePrompt = true;
+            
+            cursorOff();
             tv.scrollBy(0, inputLineStart * tv.getLineHeight());
             
             // TODO: actually show the prompt!
@@ -270,9 +278,13 @@ public class StandardTextBufferIO extends TextBufferIO {
         textBufPrint(str);
     }
 
+    /**
+     * The default implementation returns (0, 0). Subclasses should
+     * override this and calculate the size with respect to the font
+     * used for {@code GlkStyle.Normal}.
+     */
     @Override
     public int[] getWindowSize() {
-        /* TODO: return the real size. */
         return new int[] { 0, 0 };
     }
 
@@ -289,4 +301,6 @@ public class StandardTextBufferIO extends TextBufferIO {
     @Override
     public void doStyle(int style) {}
 
+    @Override
+    public void doClear() {}
 }

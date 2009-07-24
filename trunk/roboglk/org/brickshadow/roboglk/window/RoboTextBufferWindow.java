@@ -188,11 +188,12 @@ public class RoboTextBufferWindow extends GlkTextBufferWindow {
 
     @Override
     public void clear() {
-        /*
-         * NEEDS IMPLEMENTED
-         * 
-         * (but not for model.c, which never clears the main window)
-         */
+    	activity.runOnUiThread(new Runnable() {
+    		@Override
+    		public void run() {
+    			io.doClear();
+    		}
+    	});
     }
     
     @Override
