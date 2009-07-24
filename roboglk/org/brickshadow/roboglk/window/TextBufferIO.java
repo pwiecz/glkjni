@@ -183,4 +183,9 @@ public abstract class TextBufferIO {
      * @param style one of the {@link GlkStyle} constants
      */
     public abstract void doStyle(int style);
+    
+    /**
+     * Clears the view.
+     */
+    public abstract void doClear();
 }
