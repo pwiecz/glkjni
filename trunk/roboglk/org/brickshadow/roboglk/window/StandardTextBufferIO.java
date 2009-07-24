@@ -92,9 +92,6 @@ public class StandardTextBufferIO extends TextBufferIO {
         }
     }
     
-    /*
-     * TODO: do not consume HOME/BACK/MENU keypress.
-     */
     private boolean processSingleKey(int keyCode) {
         charInput = false;
         switch (tb.length()) {
@@ -102,6 +99,12 @@ public class StandardTextBufferIO extends TextBufferIO {
             sendKeyToGlk(KeyEvent.KEYCODE_DEL);
             return true;
         case 1: // special key
+        	if (keyCode == KeyEvent.KEYCODE_MENU) {
+        		return false;
+        	}
+        	if (keyCode == KeyEvent.KEYCODE_BACK) {
+        		return false;
+        	}
             sendKeyToGlk(keyCode);
             return true;
         case 2: // normal char
@@ -126,6 +129,12 @@ public class StandardTextBufferIO extends TextBufferIO {
             }
             
         case 1: // special key
+        	if (keyCode == KeyEvent.KEYCODE_MENU) {
+        		return false;
+        	}
+        	if (keyCode == KeyEvent.KEYCODE_BACK) {
+        		return false;
+        	}
             /* TODO: basic line editing/cursor movement */
             return true;
             
