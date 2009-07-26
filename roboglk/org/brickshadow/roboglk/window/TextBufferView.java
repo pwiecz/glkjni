@@ -1,11 +1,11 @@
 package org.brickshadow.roboglk.window;
 
+
 import android.content.Context;
 import android.text.method.MovementMethod;
 import android.text.method.ScrollingMovementMethod;
 import android.util.AttributeSet;
-import android.view.KeyEvent;
-import android.widget.TextView;
+
 
 /**
  * A TextView class for text-buffer windows. The main reason for this
@@ -13,7 +13,7 @@ import android.widget.TextView;
  * a {@code ScrollingMovementMethod}; this is important for correct 
  * handling of the MORE prompt.
  */
-public class TextBufferView extends TextView {
+public class TextBufferView extends TextWindowView {
 
     public TextBufferView(Context context) {
         super(context);
@@ -30,11 +30,6 @@ public class TextBufferView extends TextView {
     @Override
     protected MovementMethod getDefaultMovementMethod() {
         return ScrollingMovementMethod.getInstance();
-    }
-
-    @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-      return false;
     }
 
 }

@@ -1,191 +1,184 @@
 package org.brickshadow.roboglk.window;
 
-import org.brickshadow.roboglk.GlkStyle;
+
+import org.brickshadow.roboglk.window.RoboTextBufferWindow;
+
+import android.text.Selection;
+import android.text.Spannable;
+import android.view.KeyEvent;
+import android.view.View;
 
 
-/**
- * Text-buffer I/O methods. Each view that will display a text-buffer
- * window needs to be associated with an instance of an implementation
- * of this class.
- * <p>
- * The abstract {@code doXXXX} methods are called by glk (but on the
- * UI thread); the {@code sendXXXToGlk} methods are to be called in
- * response to Android input events.
- */
-public abstract class TextBufferIO {
+public class TextBufferIO extends TextIO {
 
-    /*
-     * Implementation notes: it is likely that this class as well
-     * as (the yet-to-be-written) TextGridIO will be refactored as
-     * subclasses of an TextIO class. 
-     */
+    private boolean morePrompt;
+    private int linesSinceInput;
+    private int moreLines;
+    private int inputLineStart;
     
-    /**
-     * The glk window wrapper associated with a view.
-     */
-    protected RoboTextBufferWindow win;
+    public TextBufferIO(final TextBufferView tv) {
+    	super(tv);
+    }
     
-    /**
-     * During line input, the number of characters entered so far.
-     */
-    protected int currInputLength;
-    
-    /**
-     * During line input, the characters entered so far. It is the
-     * resposibility of concrete subclasses to initialize this upon a
-     * request for line input.
-     */
-    protected char[] inputChars;
-    
-    /**
-     * Creates a new {@code TextBufferIO}.
-     */
-    public TextBufferIO() {
-        currInputLength = 0;
+    protected boolean onViewKey(View v, int keyCode, KeyEvent event) {
+        if (morePrompt && (event.getAction() == KeyEvent.ACTION_DOWN)) {
+            int viewLines = getViewLines();
+            int scrollLines =
+                ((moreLines > viewLines) ? viewLines : moreLines);
+            tv.scrollBy(0, scrollLines * tv.getLineHeight());
+            moreLines -= scrollLines;
+            
+            if (moreLines == 0) {
+                morePrompt = false; // TODO: hide the prompt!
+
+                textBufPrint("");
+            }
+            return true;
+        }
+        
+        return super.onViewKey(v, keyCode, event);
     }
     
     public void setWindow(RoboTextBufferWindow win) {
         this.win = win;
     }
+    
+    protected void cursorOff() {
+    	Spannable text = (Spannable) tv.getText();
+    	Selection.removeSelection(text);
+    }
+    
+    protected void cursorToEnd() {
+    	cursorToEnd(0);
+    }
+    
+    protected void cursorToEnd(int back) {
+    	Spannable text = (Spannable) tv.getText();
+    	int len = text.length();
+    	Selection.setSelection(text, len + back);
+    }
+    
+    /* Prints text and decides if the MORE prompt is needed. */
+    private void textBufPrint(CharSequence str) {
+        
+        /* If the cursor offset equals the length of the text, append()
+         * will advance the cursor (and automatically scroll) whether
+         * we want it to or not. So we back the cursor up until we know
+         * if we should scroll to end or display the MORE prompt.  
+         */
+        cursorToEnd(-1);
+        
+        int oldLineCount = tv.getLineCount();
+        tv.append(str);
+        int linesAdded = tv.getLineCount() - oldLineCount;
+        
+        if (morePrompt) {
+            moreLines += linesAdded;
+            return;
+        }
+        
+        if (needsMorePrompt(linesAdded)) {
+            return;
+        }
+        
+        cursorToEnd();
+    }
+    
+    private boolean needsMorePrompt(int linesAdded) {
+        linesSinceInput += linesAdded;
+        
+        int viewLines = getViewLines();
+        // TODO: maybe >= instead? or >= viewLines - 1 ?
+        if (linesSinceInput > viewLines) {
+            moreLines = linesSinceInput - viewLines;
+            morePrompt = true;
+            
+            cursorOff();
+            tv.scrollBy(0, inputLineStart * tv.getLineHeight());
+            
+            // TODO: actually show the prompt!
+            
+            return true;
+        } else {
+            inputLineStart -= linesAdded;
+        }
+        
+        return false;
+    }
+    
+
+    /* When echoing text, we don't have to worry about the MORE prompt,
+     * so we always advance the cursor to the end of the text.
+     */
+    private void textBufEcho(CharSequence str) {
+        tv.append(str);
+        cursorToEnd();
+    }
+    
+    @Override
+    protected final void textEcho(CharSequence str) {
+    	textBufEcho(str);    	
+    }
+    
+    @Override
+    protected final void textEchoNewline() {
+    	textBufEcho("\n");
+    }
+
+    @Override
+    public final void doLineInput(boolean unicode, int maxlen,
+            char[] initialChars) {
+        
+        super.doLineInput(unicode, maxlen, initialChars);
+        
+        linesSinceInput = 0;
+        inputLineStart = computeInputLineStart();
+    }
+    
+    /* TODO: This will have to take clear() into account. */
+    private int computeInputLineStart() {
+        int lineCount = tv.getLineCount();
+        int viewLines = getViewLines();
+        if (lineCount < viewLines) {
+            return lineCount;
+        } else {
+            return viewLines - 1;
+        }
+    }
+
+    @Override
+    public final void doPrint(String str) {
+        textBufPrint(str);
+    }
 
     /**
-     * Prepares a view for single-key input. After this method is called,
-     * each key event should result in a call to {@link #sendCharToGlk(char)}
-     * or {@link #sendKeyToGlk(int)}, without echoing the key to the screen.
+     * The default implementation returns (0, 0). Subclasses should
+     * override this and calculate the size with respect to the font
+     * used for {@code GlkStyle.Normal}.
      */
-    public abstract void doCharInput();
-    
-    /**
-     * Sends a unicode char to the glk window wrapper.
-     * <p>
-     * This should not be called outside of a
-     * {@code doCharInput()/stopCharInput()} series of events (but if it
-     * is, glkjni will ignore any character input event that is generated
-     * by the glk window wrapper).
-     * 
-     * @param c
-     *           a character
-     */
-    public final void sendCharToGlk(char c) {
-        /* 
-         * This assumes that all special keys are indeed handled
-         * by calls to sendKeyToGlk().
-         */
-        win.recordKey(c);
+    @Override
+    public int[] getWindowSize() {
+        return new int[] { 0, 0 };
     }
     
-    /**
-     * Call this to send a non-printing keypress to the glk window wrapper.
-     * <p>
-     * This should not be called outside of a
-     * {@code doCharInput()/stopCharInput()} series of events (but if it
-     * is, glkjni will ignore any character input event that is generated
-     * by the glk window wrapper).
-     * 
-     * @param keycode
-     *           an Android keycode
+    /*
+     * The following may become abstract or move up to TextIO?.
      */
-    public final void sendKeyToGlk(int keycode) {
-        win.recordKey(keycode);
+    
+    @Override
+    public void doStyle(int style) {}
+    
+    @Override
+    public boolean doDistinguishStyles(int styl1, int styl2) {
+    	return false;
     }
     
-    /**
-     * Cancels single-key input in a view.
-     */
-    public abstract void stopCharInput();
-    
-    /**
-     * Prepares a view for line input. After this method is called, key
-     * events should be handled as line input (echoed to the screen, and
-     * perhaps with support for basic line editing).
-     * <p>
-     * While input is occurring, the current number of characters input
-     * must be stored in {@link #currInputLength}, and the actual characters
-     * must be placed, as they are entered, in {@link #inputChars}.
-     * <p>
-     * When input is finished, {@link #sendLineToGlk()} should be called.
-     * <p>
-     * Implementations should use the values of {@code maxlen}
-     * and {@code unicode} to guide their behavior.
-     * 
-     * @param unicode
-     *           if unicode input was requested
-     * @param maxlen
-     *           the maximum input length that glk is expecting
-     * @param initialChars
-     *           if non-null, text that should be displayed as though the
-     *           player had typed it as the beginning of the input.
-     */
-    public abstract void doLineInput(boolean unicode, int maxlen,
-            char[] initialChars);
-    
-    /**
-     * Sends a line of input to the glk window wrapper.
-     * <p>
-     * This should not be called outside of a
-     * {@code doLineInput()/stopLineInput()} series of events (but if it
-     * is, glkjni will ignore any line input event that is generated
-     * by the glk window wrapper).
-     * <p>
-     * The input array may be modified by this method.
-     * 
-     * @param line a line of input
-     */
-    public final void sendLineToGlk() {
-        win.recordLine(inputChars, currInputLength, true);
+    @Override
+    public int doMeasureStyle(int styl, int hint)
+    		throws StyleMeasurementException {
+    	throw new StyleMeasurementException();
     }
-    
-    /**
-     * Called to cancel line input. This is a wrapper which takes care
-     * of communicating the current input length back to the glk window
-     * wrapper and then calls {@link #stopLineInput()}.
-     */
-    public final void stopLineInputAndGetLength() {
-        win.recordLine(inputChars, currInputLength, false);
-        win.setCurrInputLength(currInputLength);
-        stopLineInput();
-    }
-    
-    /**
-     * Cancels line input from a view.
-     */
-    public abstract void stopLineInput();
-    
-    /**
-     * Must return the width and height of the view. The width should
-     * be the number of "0" (zero) characters that would fit on a line;
-     * the height should be the number of lines of text that fit in the view.
-     * Both measurements should be in terms of the normal font of the view.
-     * 
-     * @return a two-element array with the width and height of the window
-     */
-    public abstract int[] getWindowSize();
-    
-    /**
-     * Called by the glk window wrapper to arrange for the window size
-     * to be returned to the interpreter thread.
-     */
-    public final void requestWindowSize() {
-        int[] size = getWindowSize();
-        win.setSize(size[0], size[1]);
-    }
-    
-    /**
-     * Prints a string in the view. Implementations are responsible for
-     * maintaining the cursor position and scrolling the text.
-     * 
-     * @param str the string to print.
-     */
-    public abstract void doPrint(String str);
-    
-    /**
-     * Changes the display style for newly-printed text. 
-     * @param style one of the {@link GlkStyle} constants
-     */
-    public abstract void doStyle(int style);
-    
-    /**
-     * Clears the view.
-     */
-    public abstract void doClear();
+
+    @Override
+    public void doClear() {}
 }
