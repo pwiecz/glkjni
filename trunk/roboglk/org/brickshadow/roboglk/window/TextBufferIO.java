@@ -3,6 +3,7 @@ package org.brickshadow.roboglk.window;
 
 import org.brickshadow.roboglk.window.RoboTextBufferWindow;
 
+import android.text.Editable;
 import android.text.Selection;
 import android.text.Spannable;
 import android.view.KeyEvent;
@@ -16,8 +17,18 @@ public class TextBufferIO extends TextIO {
     private int moreLines;
     private int inputLineStart;
     
+    
+    private static int HISTORYLEN = 25;
+    private char[][] history;
+    private char[] historyTemp;
+    private int historyPos;
+    private int historyStart;
+    private int historyEnd;
+    
     public TextBufferIO(final TextBufferView tv) {
     	super(tv);
+    	history = new char[HISTORYLEN][];
+    	historyPos = -1;
     }
     
     protected boolean onViewKey(View v, int keyCode, KeyEvent event) {
@@ -133,6 +144,10 @@ public class TextBufferIO extends TextIO {
         
         linesSinceInput = 0;
         inputLineStart = computeInputLineStart();
+        
+        if (historyTemp == null || historyTemp.length < maxlen) {
+        	historyTemp = new char[maxlen];
+        }
     }
     
     /* TODO: This will have to take clear() into account. */
@@ -160,8 +175,102 @@ public class TextBufferIO extends TextIO {
     public int[] getWindowSize() {
         return new int[] { 0, 0 };
     }
+
+    private boolean isLastHistory() {
+    	char[] last = history[historyEnd];
+    	if (last == null || last.length != currInputLength) {
+    		return false;
+    	}
+    	int i;
+    	for (i = 0; i < currInputLength; i++) {
+    		if (last[i] != inputChars[i]) {
+    			break;
+    		}
+    	}
+    	return (i == currInputLength);
+    }
     
-    /*
+    private void historyPull(char[] cmd) {
+    	int cmdlen = (cmd.length > inputChars.length) ?
+    			inputChars.length : cmd.length;
+    	
+    	Editable text = (Editable) tv.getText();
+    	int textlen = text.length();
+    	
+    	if (cmdlen == 0) {
+    		text.delete(textlen - currInputLength, textlen);
+    	} else {
+    		System.arraycopy(cmd, 0, inputChars, 0, cmdlen);
+    		text.replace(textlen - currInputLength, textlen,
+        			String.valueOf(inputChars), 0, cmdlen);
+    	}
+    	
+    	currInputLength = cmdlen;
+    }
+    
+	@Override
+	protected void extendHistory() {
+		historyPos = -1;
+		if (isLastHistory() || currInputLength == 0) {
+			return;
+		}
+		if (history[historyEnd] != null) {
+			historyEnd += 1;
+			if (historyEnd >= HISTORYLEN) {
+				historyEnd -= HISTORYLEN;
+			}
+			if (historyEnd == historyStart) {
+				historyStart += 1;
+				if (historyStart >= HISTORYLEN) {
+					historyStart -= HISTORYLEN;
+				}
+			}
+		}
+		history[historyEnd] = new char[currInputLength];
+		System.arraycopy(inputChars, 0, history[historyEnd], 0,
+				currInputLength);
+	}
+
+	@Override
+	protected void historyNext() {
+		if (historyPos == -1) {
+			return;
+		}
+		if (historyPos == historyEnd) {
+			historyPos = -1;
+			historyPull(historyTemp);
+		} else {
+			historyPos += 1;
+			if (historyPos >= HISTORYLEN) {
+				historyPos -= HISTORYLEN;
+			}
+			historyPull(history[historyPos]);
+		}
+	}
+
+	@Override
+	protected void historyPrev() {
+		if (historyPos == historyStart) {
+			return;
+		}
+		if (historyPos == -1) {
+			if (history[historyEnd] == null) {
+				return;
+			}
+			historyTemp = new char[currInputLength];
+			System.arraycopy(inputChars, 0, historyTemp, 0, currInputLength);
+			historyPos = historyEnd;
+		} else {
+			historyPos -= 1;
+			if (historyPos < 0) {
+				historyPos = HISTORYLEN - 1;
+			}
+		}
+
+		historyPull(history[historyPos]);
+	}
+	
+	/*
      * The following may become abstract or move up to TextIO?.
      */
     

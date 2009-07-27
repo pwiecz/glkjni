@@ -255,7 +255,7 @@ abstract class TextIO {
         if (charInput) {
             return processSingleKey(keyCode);
         } else {
-            return processLineKey(keyCode);
+            return processLineKey(keyCode, event.getAction());
         }
     }
     
@@ -282,7 +282,7 @@ abstract class TextIO {
         }
     }
     
-    private boolean processLineKey(int keyCode) {
+    private boolean processLineKey(int keyCode, int action) {
         switch (tb.length()) {
         case 0: // delete
             if (currInputLength == 0) {
@@ -296,11 +296,22 @@ abstract class TextIO {
             }
             
         case 1: // special key
-        	if (keyCode == KeyEvent.KEYCODE_MENU) {
+        	switch (keyCode) {
+        	case KeyEvent.KEYCODE_MENU:
+        	case KeyEvent.KEYCODE_BACK:
         		return false;
-        	}
-        	if (keyCode == KeyEvent.KEYCODE_BACK) {
-        		return false;
+        	case KeyEvent.KEYCODE_DPAD_UP:
+        		if (action == KeyEvent.ACTION_DOWN) {
+        			historyPrev();
+        		}
+        		break;
+        	case KeyEvent.KEYCODE_DPAD_DOWN:
+        		if (action == KeyEvent.ACTION_DOWN) {
+        			historyNext();
+        		}
+        		break;
+        	default:
+        		break;
         	}
             /* TODO: basic line editing/cursor movement */
             return true;
@@ -312,6 +323,7 @@ abstract class TextIO {
                 lineInput = false;
                 textEchoNewline();
                 sendLineToGlk();
+                extendHistory();
                 return true;
             }
             
@@ -328,6 +340,12 @@ abstract class TextIO {
             return false;
         }
     }
+    
+    protected abstract void historyPrev();
+    
+    protected abstract void historyNext();
+    
+    protected abstract void extendHistory();
     
     /* TODO: account for padding? */
     protected final int getViewLines() {

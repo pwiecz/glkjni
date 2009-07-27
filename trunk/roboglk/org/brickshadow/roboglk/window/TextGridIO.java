@@ -50,4 +50,22 @@ public class TextGridIO extends TextIO {
 			throws StyleMeasurementException {
 		throw new StyleMeasurementException();
 	}
+
+	/**
+	 * Does nothing. History is not supported in text grid windows.
+	 */
+	@Override
+	protected void extendHistory() {}
+
+	/**
+	 * Does nothing. History is not supported in text grid windows.
+	 */
+	@Override
+	protected void historyNext() {}
+
+	/**
+	 * Does nothing. History is not supported in text grid windows.
+	 */
+	@Override
+	protected void historyPrev() {}
 }
