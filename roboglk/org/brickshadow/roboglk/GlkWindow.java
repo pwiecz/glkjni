@@ -264,22 +264,22 @@ public interface GlkWindow {
      * <p>
      * Applies to: text buffer
      * 
-     * @param num
-     *           The image resource number.<p>
+     * @param bres
+     *           A {@link BlorbResource}.<p>
      * @param alignment
      *           One of the constants in {@link GlkImageAlign}.<p>
      * @return
      *           True if the image was drawn.
      */
-    boolean drawInlineImage(int num, int alignment);
+    boolean drawInlineImage(BlorbResource bres, int alignment);
 
     /**
      * Draws a scaled image in the text buffer window.
      * <p>
      * Applies to: text buffer
      *  
-     * @param num
-     *           The image resource number.<p>
+     * @param bres
+     *           A {@link BlorbResource}.<p>
      * @param alignment
      *           One of the constants in {@link GlkImageAlign}.<p>
      * @param width
@@ -289,7 +289,7 @@ public interface GlkWindow {
      * @return
      *           True if the image was drawn.
      */
-    boolean drawInlineImage(int num, int alignment, int width,
+    boolean drawInlineImage(BlorbResource bres, int alignment, int width,
             int height);
 
     /**
@@ -313,7 +313,7 @@ public interface GlkWindow {
      * @return
      *           True if the image was drawn.
      */
-    boolean drawImage(int num, int x, int y);
+    boolean drawImage(BlorbResource bres, int x, int y);
 
     /**
      * Draws an image in the window, scaled to a certain size. The x and
@@ -322,8 +322,8 @@ public interface GlkWindow {
      * <p>
      * Applies to: graphics
      * 
-     * @param num
-     *           The number of the image resource.<p>
+     * @param bres
+     *           A {@link BlorbResource}.<p>
      * @param x
      *           The x coordinate of the image.<p>
      * @param y
@@ -335,7 +335,7 @@ public interface GlkWindow {
      * @return
      *           True if the image was drawn.
      */
-    boolean drawImage(int num, int x, int y, int width,
+    boolean drawImage(BlorbResource bres, int x, int y, int width,
             int height);
 
     /**

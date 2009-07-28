@@ -234,25 +234,21 @@ public interface Glk {
     * {@code true}) or unloaded. A Java frontend is free to ignore
     * this request.
     * 
-    * @param num
-    *           The number of the affected sound resource.<p>
+    * @param bres
+    *           A {@link BlorbResource} object
     * @param flag
     *           True to request preloading; false to request
     *           unloading.<p>
     */
-   void setSoundLoadHint(int num, boolean flag);
+   void setSoundLoadHint(BlorbResource bres, boolean flag);
    
    /**
     * Gets the size of an image.
     * 
-    * @param num
-    *           The number of an image resource.<p>
-    * @param dim
-    *           Used to return the size of the image. {@code dim[0]}
-    *           will be set to the width, and {@code dim[1]} to the
-    *           height.<p>
+    * @param bres
+    *           A {@link BlorbResource} object
     * @return
     *           True if the image information could be determined.
     */
-   boolean getImageInfo(int num, int[] dim);
+   boolean getImageInfo(BlorbResource bres, int[] dim);
 }

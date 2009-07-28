@@ -19,19 +19,26 @@
 #include <jni.h>
 #include "glk.h"
 #include "glkjni.h"
+#include "gi_blorb.h"
 #include "jcall.h"
 #include "window.h"
 
 glui32 glk_image_get_info(glui32 image, glui32 *width, glui32 *height)
 {
-    jboolean res;
+    jboolean res = FALSE;
     jintArray jdim;
     jint *dim = NULL;
     int wid = 0;
     int hgt = 0;
+    jobject jres;
 
     if ((jint)image < 0) {
         gli_strict_warning("image_get_info: resource number too large");
+        return FALSE;
+    }
+
+    jres = glkjni_get_blorb_resource(giblorb_ID_Pict, image);
+    if (!jres) {
         return FALSE;
     }
 
@@ -40,10 +47,10 @@ glui32 glk_image_get_info(glui32 image, glui32 *width, glui32 *height)
         jni_no_mem();
     }
 
-    res = (*jni_env)->CallBooleanMethod(
-            GLK_M(IMAGEINFO), (jint)image, jdim);
+    res = (*jni_env)->CallBooleanMethod(GLK_M(IMAGEINFO),
+            jres, jdim);
     if (jni_check_exc()) {
-        return FALSE;
+        goto done;
     }
 
     dim = (*jni_env)->GetIntArrayElements(jni_env, jdim, NULL);
@@ -55,6 +62,7 @@ glui32 glk_image_get_info(glui32 image, glui32 *width, glui32 *height)
     (*jni_env)->ReleaseIntArrayElements(jni_env, jdim, dim, JNI_ABORT);
 
 done:
+    DELETE_LOCAL(jres);
     DELETE_LOCAL(jdim);
     if (width) {
         *width = wid;
@@ -69,9 +77,15 @@ glui32 glk_image_draw(window_t *win, glui32 image, glsi32 val1,
         glsi32 val2)
 {
     jboolean res;
+    jobject jres;
 
     if ((jint)image < 0) {
         gli_strict_warning("image_draw: resource number too large");
+        return FALSE;
+    }
+
+    jres = glkjni_get_blorb_resource(giblorb_ID_Pict, image);
+    if (!jres) {
         return FALSE;
     }
 
@@ -79,16 +93,17 @@ glui32 glk_image_draw(window_t *win, glui32 image, glsi32 val1,
     case wintype_TextBuffer:
         if (val1 < imagealign_InlineUp || val1 > imagealign_MarginRight) {
             gli_strict_warning("image_draw: invalid alignment");
+            DELETE_LOCAL(jres);
             return FALSE;
         }
         res = (*jni_env)->CallBooleanMethod(
                 WIN_M(win->jwin, DRAWINLINE),
-                (jint)image, (jint)val1);
+                jres, (jint)val1);
         break;
     case wintype_Graphics:
         res = (*jni_env)->CallBooleanMethod(
                 WIN_M(win->jwin, DRAW),
-                (jint)image, (jint)val1, (jint)val2);
+                jres, (jint)val1, (jint)val2);
         break;
     default:
         res = FALSE;
@@ -98,6 +113,7 @@ glui32 glk_image_draw(window_t *win, glui32 image, glsi32 val1,
     if (jni_check_exc()) {
         res = FALSE;
     }
+    DELETE_LOCAL(jres);
 
     return res;
 }
@@ -106,6 +122,7 @@ glui32 glk_image_draw_scaled(window_t *win, glui32 image,
     glsi32 val1, glsi32 val2, glui32 width, glui32 height)
 {
     jboolean res;
+    jobject jres;
 
     if ((jint)image < 0) {
         gli_strict_warning("image_draw_scaled: resource number too large");
@@ -115,20 +132,26 @@ glui32 glk_image_draw_scaled(window_t *win, glui32 image,
         return FALSE;
     }
 
+    jres = glkjni_get_blorb_resource(giblorb_ID_Pict, image);
+    if (!jres) {
+        return FALSE;
+    }
+
     switch (win->type) {
     case wintype_TextBuffer:
         if (val1 < imagealign_InlineUp || val1 > imagealign_MarginRight) {
             gli_strict_warning("image_draw: invalid alignment");
+            DELETE_LOCAL(jres);
             return FALSE;
         }
         res = (*jni_env)->CallBooleanMethod(
                 WIN_M(win->jwin, DRAWINLINESCALED),
-                (jint)image, (jint)val1, (jint)width, (jint)height);
+                jres, (jint)val1, (jint)width, (jint)height);
         break;
     case wintype_Graphics:
         res = (*jni_env)->CallBooleanMethod(
                 WIN_M(win->jwin, DRAWSCALED),
-                (jint)image, (jint)val1, (jint)val2,
+                jres, (jint)val1, (jint)val2,
                 (jint)width, (jint)height);
         break;
     default:
@@ -139,6 +162,7 @@ glui32 glk_image_draw_scaled(window_t *win, glui32 image,
     if (jni_check_exc()) {
         res = FALSE;
     }
+    DELETE_LOCAL(jres);
 
     return res;
 }

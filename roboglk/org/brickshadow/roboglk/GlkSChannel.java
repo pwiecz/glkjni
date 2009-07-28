@@ -39,7 +39,7 @@ public interface GlkSChannel {
      * A sound notification event will be generated, if requested, after
      * the last repetition has finished.
      * 
-     * @param num the sound resource number
+     * @param bres A {@link BlorbResource} object
      * @param repeats the number of times to repeat the sound; it will be
      *                either -1 (meaning repeat forever) or a non-zero
      *                positive value
@@ -47,7 +47,7 @@ public interface GlkSChannel {
      *               stops playing
      * @return {@code true} if the sound started playing
      */
-    boolean play(int num, int repeats, int notify);
+    boolean play(BlorbResource bres, int repeats, int notify);
     
     /**
      * Stops the current sound without notification. If there is no

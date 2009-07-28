@@ -27,6 +27,7 @@
 #include <jni.h>
 #include "glk.h"
 #include "gi_dispa.h"
+#include "gi_blorb.h"
 
 /* First, we define our own TRUE and FALSE and NULL, because ANSI
     is a strange world. */
@@ -115,6 +116,8 @@ gidispatch_rock_t gli_fref_get_disprock(frefid_t fref);
 void gli_fref_set_disprock(frefid_t fref);
 gidispatch_rock_t gli_schan_get_disprock(schanid_t schan);
 void gli_schan_set_disprock(schanid_t schan);
+
+jobject glkjni_get_blorb_resource(glui32 usage, glui32 resnum);
 
 void gli_exit(void);
 void gli_interrupted(void);

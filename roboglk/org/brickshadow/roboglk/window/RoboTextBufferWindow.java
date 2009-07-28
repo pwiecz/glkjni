@@ -3,6 +3,7 @@ package org.brickshadow.roboglk.window;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 
+import org.brickshadow.roboglk.BlorbResource;
 import org.brickshadow.roboglk.GlkEventQueue;
 import org.brickshadow.roboglk.GlkTextBufferWindow;
 
@@ -131,7 +132,7 @@ implements RoboTextWindow {
     }
 
     @Override
-    public boolean drawInlineImage(int num, int alignment) {
+    public boolean drawInlineImage(BlorbResource bres, int alignment) {
         /*
          * Not currently implemented. (it would be here and not in
          * RoboTextWindowImpl).
@@ -140,7 +141,7 @@ implements RoboTextWindow {
     }
 
     @Override
-    public boolean drawInlineImage(int num, int alignment, int width,
+    public boolean drawInlineImage(BlorbResource bres, int alignment, int width,
             int height) {
     	/*
          * Not currently implemented. (it would be here and not in

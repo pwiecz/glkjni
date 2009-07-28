@@ -38,12 +38,15 @@ gidispatch_rock_t (*gli_register_arr)(void *array, glui32 len,
 void (*gli_unregister_arr)(void *array, glui32 len, char *typecode,
     gidispatch_rock_t objrock) = NULL;
 
+static giblorb_map_t *blorbmap = NULL;
+
 void glkjni_c_shutdown(void)
 {
     gli_register_obj = NULL;
     gli_unregister_obj = NULL;
     gli_register_arr = NULL;
     gli_unregister_arr = NULL;
+    giblorb_destroy_map(blorbmap);
 }
 
 #ifdef ANDROID
@@ -161,8 +164,6 @@ gidispatch_rock_t gidispatch_get_objrock(void *obj, glui32 objclass)
     }
 }
 
-static giblorb_map_t *blorbmap = NULL;
-
 giblorb_err_t giblorb_set_resource_map(strid_t file)
 {
     giblorb_err_t err;
@@ -179,6 +180,34 @@ giblorb_err_t giblorb_set_resource_map(strid_t file)
 giblorb_map_t *giblorb_get_resource_map()
 {
     return blorbmap;
+}
+
+jobject glkjni_get_blorb_resource(glui32 usage, glui32 resnum)
+{
+	giblorb_err_t err;
+	giblorb_map_t *map;
+	giblorb_result_t result;
+	jobject jres;
+
+	map = giblorb_get_resource_map();
+	if (!map) {
+		return NULL;
+	}
+
+	err = giblorb_load_resource(map, giblorb_method_FilePos, &result, usage,
+            resnum);
+	if (err != giblorb_err_None) {
+	    return NULL;
+	}
+
+	jres = (*jni_env)->NewObject(STATIC_M(BLORBRES, NEW),
+	        (jint)resnum, (jint)(result.data.startpos),
+	        (jint)(result.length), (jint)(result.chunktype));
+	if (jni_check_exc()) {
+	    return NULL;
+	}
+
+	return jres;
 }
 
 void glkjni_set_story_path(char *storypath)
