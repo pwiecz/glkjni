@@ -48,8 +48,8 @@ class RoboTextWindowImpl implements RoboTextWindow {
      * which need to have some effect on the UI thread but which also
      * need to return a value to the interpreter thread.
      */
+	private UISync uiWait;
     private volatile int currInputLength;
-    private volatile boolean waitingForIO;
     private volatile int sizeX;
     private volatile int sizeY;
     private volatile boolean styleDistinct;
@@ -163,145 +163,72 @@ class RoboTextWindowImpl implements RoboTextWindow {
             		GlkEventQueue.newLineInputEvent(glkWindow, inputLength));
         }
 	}
-
-	@Override
-	public void setCurrInputLength(int len) {
-		synchronized(this) {
-            boolean wasWaiting = waitingForIO;
-            currInputLength = len;
-            waitingForIO = false;
-            if (wasWaiting) {
-                notify();
-            }
-        }
-	}
-
+	
 	void getSize(int[] dim) {
-		synchronized(this) {
-            waitingForIO = true;
-        }
-        
-        int x = 0;
-        int y = 0;
-        activity.runOnUiThread(new Runnable() {
-            @Override
+		uiWait = new UISync(activity);
+		uiWait.waitFor(new Runnable() {
             public void run() {
                 io.requestWindowSize();
             }
         });
         
-        synchronized(this) {
-            try {        
-                while (waitingForIO) {
-                    wait();
-                }
-                x = sizeX;
-                y = sizeY;
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        }
-
-        dim[0] = x;
-        dim[1] = y;
+        dim[0] = sizeX;
+        dim[1] = sizeY;
 	}
 	
 	@Override
-	public void setSize(int x, int y) {
-		synchronized(this) {
-            boolean wasWaiting = waitingForIO;
-            sizeX = x;
-            sizeY = y;
-            waitingForIO = false;
-            if (wasWaiting) {
-                notify();
-            }
-        }
+	public void setSize(final int x, final int y) {
+		uiWait.stopWaiting(new Runnable() {
+			public void run() {
+				sizeX = x;
+	            sizeY = y;
+			}
+		});
+		uiWait = null;
 	}
 	
 	boolean distinguishStyles(final int styl1, final int styl2) {
-		synchronized(this) {
-            waitingForIO = true;
-        }
-		
-		activity.runOnUiThread(new Runnable() {
-            @Override
+		uiWait = new UISync(activity);
+		uiWait.waitFor(new Runnable() {
             public void run() {
                 io.requestStyleDistinguish(styl1, styl2);
             }
         });
 		
-		boolean distinct = false;
-		synchronized(this) {
-            try {        
-                while (waitingForIO) {
-                    wait();
-                }
-                distinct = styleDistinct;
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        }
-		
-		return distinct;
+		return styleDistinct;
 	}
 	
 	@Override
-	public void setStyleDistinguish(boolean distinct) {
-		synchronized(this) {
-            boolean wasWaiting = waitingForIO;
-            styleDistinct = distinct;
-            waitingForIO = false;
-            if (wasWaiting) {
-                notify();
-            }
-        }
+	public void setStyleDistinguish(final boolean distinct) {
+		uiWait.stopWaiting(new Runnable (){
+			public void run() {
+	            styleDistinct = distinct;
+			}
+		});
 	}
 	
 	int measureStyle(final int styl, final int hint) {
-		synchronized(this) {
-            waitingForIO = true;
-        }
-		
-		activity.runOnUiThread(new Runnable() {
-            @Override
+		uiWait = new UISync(activity);
+		uiWait.waitFor(new Runnable() {
             public void run() {
                 io.requestStyleMeasure(styl, hint);
             }
         });
 		
-		boolean success = false;
-		int val = 0;
-		synchronized(this) {
-            try {        
-                while (waitingForIO) {
-                    wait();
-                }
-                success = couldMeasure;
-                val = styleMeasure;
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        }
-		
-		if (!success) {
+		if (!couldMeasure) {
 			throw new StyleMeasurementException();
-		}
-		
-		return val;
+		}		
+		return styleMeasure;
 	}
 	
 	@Override
-	public void setStyleMeasure(boolean success, int val) {
-		synchronized(this) {
-            boolean wasWaiting = waitingForIO;
-            couldMeasure = success;
-            styleMeasure = val;
-            waitingForIO = false;
-            if (wasWaiting) {
-                notify();
-            }
-        }
+	public void setStyleMeasure(final boolean success, final int val) {
+		uiWait.stopWaiting(new Runnable() {
+			public void run() {
+	            couldMeasure = success;
+	            styleMeasure = val;
+			}
+		});
 	}
 
 	private char[] getInitialChars(ByteBuffer lbuf, IntBuffer ubuf, int maxlen,
@@ -415,31 +342,27 @@ class RoboTextWindowImpl implements RoboTextWindow {
     }
 	
 	int cancelLineEvent() {
-        synchronized(this) {
-            waitingForIO = true;
-        }
-        
-        int currLen = 0;
-        activity.runOnUiThread(new Runnable() {
+		uiWait = new UISync(activity);
+		uiWait.waitFor(new Runnable() {
             @Override
             public void run() {
                 io.stopLineInputAndGetLength();
             }
         });
         
-        synchronized(this) {
-            try {        
-                while (waitingForIO) {
-                    wait();
-                }
-                currLen = currInputLength;
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        }
-        
-        return currLen;
+        return currInputLength;
     }
+	
+	@Override
+	public void setCurrInputLength(final int len) {
+		uiWait.stopWaiting(new Runnable() {
+			public void run() {
+	            currInputLength = len;
+			}
+		});
+		uiWait = null;
+	}
+
 	
 	void setStyle(final int val) {
         activity.runOnUiThread(new Runnable() {

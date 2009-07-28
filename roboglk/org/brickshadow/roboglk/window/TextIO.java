@@ -1,5 +1,6 @@
 package org.brickshadow.roboglk.window;
 
+
 import org.brickshadow.roboglk.GlkStyle;
 
 import android.text.Editable;
@@ -8,6 +9,7 @@ import android.text.SpannableStringBuilder;
 import android.text.method.TextKeyListener;
 import android.view.KeyEvent;
 import android.view.View;
+
 
 abstract class TextIO {
 
@@ -50,6 +52,8 @@ abstract class TextIO {
                 return onViewKey(v, keyCode, event);
             }
         });
+        
+        tv.setFocusableInTouchMode(true);
     }
 	
 	/**
@@ -259,6 +263,13 @@ abstract class TextIO {
         }
     }
     
+    private void endLineInput() {
+    	lineInput = false;
+        textEchoNewline();
+        sendLineToGlk();
+        extendHistory();
+    }
+    
     private boolean processSingleKey(int keyCode) {
         charInput = false;
         switch (tb.length()) {
@@ -320,10 +331,7 @@ abstract class TextIO {
             char c = tb.charAt(1);
             
             if (c == '\n') {
-                lineInput = false;
-                textEchoNewline();
-                sendLineToGlk();
-                extendHistory();
+                endLineInput();
                 return true;
             }
             
