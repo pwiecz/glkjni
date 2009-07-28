@@ -29,16 +29,23 @@
 #include "glkstart.h"
 #include "jcall.h"
 
+#ifdef ANDROID
+#define GLKJNI_PKG "org/brickshadow/roboglk"
+#else
+#define GLKJNI_PKG "glkjni"
+#endif
+
 JNIEnv *jni_env;
 jobject glkobj;
 
 static glkunix_startup_t *startdata;
 
 classcache_t jni_ccache[] = {
-        { GLK_CLASS, "/Glk" },
-        { GLKFACTORY_CLASS, "/GlkFactory" },
-        { GLKWINDOW_CLASS, "/GlkWindow" },
-        { GLKCHANNEL_CLASS, "/GlkSChannel" },
+        { GLK_CLASS, GLKJNI_PKG "/Glk" },
+        { GLKFACTORY_CLASS, GLKJNI_PKG "/GlkFactory" },
+        { GLKWINDOW_CLASS, GLKJNI_PKG "/GlkWindow" },
+        { GLKCHANNEL_CLASS, GLKJNI_PKG "/GlkSChannel" },
+        { BLORBRES_CLASS, GLKJNI_PKG "/BlorbResource" },
         { ERROR_CLASS, "java/lang/Error" },
         { UOE_CLASS, "java/lang/UnsupportedOperationException" },
         { STRING_CLASS, "java/lang/String" },
@@ -69,8 +76,9 @@ methodcache_t jni_mcache[] = {
 #endif
         METHOD(GLK, GESTALT, "gestalt", "(II[I)I"),
         METHOD(GLK, WINDOWOPEN, "windowOpen",
-                "see jni_init_methods"),
-        METHOD(GLK, WINDOWCLOSE, "windowClose", "see jni_init_methods"),
+                "(L" GLKJNI_PKG "/GlkWindow;IIII[L" GLKJNI_PKG "/GlkWindow;)V"),
+        METHOD(GLK, WINDOWCLOSE, "windowClose",
+                "(L" GLKJNI_PKG "/GlkWindow;)V"),
         METHOD(GLK, SETHINT, "setStyleHint", "(IIII)V"),
         METHOD(GLK, CLEARHINT, "clearStyleHint", "(III)V"),
         METHOD(GLK, NAMEDFILE, "namedFile",
@@ -78,12 +86,14 @@ methodcache_t jni_mcache[] = {
         METHOD(GLK, PROMPTFILE, "promptFile", "(II)Ljava/io/File;"),
         METHOD(GLK, REQUESTTIMER, "requestTimer", "(I)V"),
         METHOD(GLK, CANCELTIMER, "cancelTimer", "()V"),
-        METHOD(GLK, IMAGEINFO, "getImageInfo", "(I[I)Z"),
+        METHOD(GLK, IMAGEINFO, "getImageInfo",
+                "(L" GLKJNI_PKG "/BlorbResource;[I)Z"),
         METHOD(GLK, CREATECHAN, "createChannel",
-                "see jni_init_methods"),
+                "()L" GLKJNI_PKG "/GlkSChannel;"),
         METHOD(GLK, CHANNELDESTROY, "destroyChannel",
-                "see jni_init_methods"),
-        METHOD(GLK, SOUNDHINT, "setSoundLoadHint", "(IZ)V"),
+                "(L" GLKJNI_PKG "/GlkSChannel;)V"),
+        METHOD(GLK, SOUNDHINT, "setSoundLoadHint",
+                "(L" GLKJNI_PKG "/BlorbResource;Z)V"),
         METHOD(GLK, SELECT, "select", "([I)V"),
         METHOD(GLK, POLL, "poll", "([I)V"),
 
@@ -95,7 +105,7 @@ methodcache_t jni_mcache[] = {
         METHOD(GLKWINDOW, CURSOR, "moveCursor", "(II)V"),
         METHOD(GLKWINDOW, SIZE, "getSize", "([I)V"),
         METHOD(GLKWINDOW, ARRANGE, "setArrangement",
-                "see jni_init_methods"),
+                "(IIL" GLKJNI_PKG "/GlkWindow;)V"),
         METHOD(GLKWINDOW, REQUESTCHAR, "requestCharEvent", "(Z)V"),
         METHOD(GLKWINDOW, CANCELCHAR, "cancelCharEvent", "()V"),
         METHOD(GLKWINDOW, REQUESTLINE, "requestLineEvent",
@@ -108,18 +118,25 @@ methodcache_t jni_mcache[] = {
         METHOD(GLKWINDOW, SETLINK, "setLinkValue", "(I)V"),
         METHOD(GLKWINDOW, REQUESTLINK, "requestLinkEvent", "()V"),
         METHOD(GLKWINDOW, CANCELLINK, "cancelLinkEvent", "()V"),
-        METHOD(GLKWINDOW, DRAWINLINE, "drawInlineImage", "(II)Z"),
-        METHOD(GLKWINDOW, DRAWINLINESCALED, "drawInlineImage", "(IIII)Z"),
+        METHOD(GLKWINDOW, DRAWINLINE, "drawInlineImage",
+                "(L" GLKJNI_PKG "/BlorbResource;I)Z"),
+        METHOD(GLKWINDOW, DRAWINLINESCALED, "drawInlineImage",
+                "(L" GLKJNI_PKG "/BlorbResource;III)Z"),
         METHOD(GLKWINDOW, FLOWBREAK, "flowBreak", "()V"),
-        METHOD(GLKWINDOW, DRAW, "drawImage", "(III)Z"),
-        METHOD(GLKWINDOW, DRAWSCALED, "drawImage", "(IIIII)Z"),
+        METHOD(GLKWINDOW, DRAW, "drawImage",
+                "(L" GLKJNI_PKG "/BlorbResource;II)Z"),
+        METHOD(GLKWINDOW, DRAWSCALED, "drawImage",
+                "(L" GLKJNI_PKG "/BlorbResource;IIII)Z"),
         METHOD(GLKWINDOW, SETBG, "setBackgroundColor", "(I)V"),
         METHOD(GLKWINDOW, ERASERECT, "eraseRect", "(IIII)V"),
         METHOD(GLKWINDOW, FILLRECT, "fillRect", "(IIIII)V"),
 
         METHOD(GLKCHANNEL, VOLUME, "setVolume", "(I)V"),
-        METHOD(GLKCHANNEL, PLAY, "play", "(III)Z"),
+        METHOD(GLKCHANNEL, PLAY, "play",
+                "(L" GLKJNI_PKG "/BlorbResource;II)Z"),
         METHOD(GLKCHANNEL, STOP, "stop", "()V"),
+
+        METHOD(BLORBRES, NEW, "<init>", "(IIII)V"),
 
         METHOD(STRING, FROMNATIVE, "<init>", "([B)V"),
         METHOD(STRING, FROMLATIN1, "<init>", "([BI)V"),
@@ -359,15 +376,7 @@ static void jni_init_classes(char *glkpackage)
     for (i = 0; i < MAX_CLASS_ID; i++) {
         assert(jni_ccache[i].id == i);
 
-        if (i <= MAX_GLK_CLASS) {
-            cname = (char *)gli_malloc(
-                    1 + strlen(glkpackage) + strlen(jni_ccache[i].name));
-            strcpy(cname, glkpackage);
-            strcat(cname, jni_ccache[i].name);
-            jni_ccache[i].name = cname;
-        } else {
-            cname = jni_ccache[i].name;
-        }
+        cname = jni_ccache[i].name;
 
         localref = (*jni_env)->FindClass(jni_env, cname);
         if (!localref) {
@@ -404,42 +413,7 @@ static void jni_init_methods(char *glkpackage)
 
         class_id = jni_mcache[i].class_id;
         class = jni_ccache[class_id].class;
-
-        /*
-         * Yes this is horribly ugly.
-         */
-        switch (i) {
-        case GLK_WINDOWOPEN_METHOD:
-            strcpy(msig, "(L");
-            strcat(msig, glkpackage);
-            strcat(msig, "/GlkWindow;IIII[L");
-            strcat(msig, glkpackage);
-            strcat(msig, "/GlkWindow;)V");
-            break;
-        case GLK_WINDOWCLOSE_METHOD:
-            strcpy(msig, "(L");
-            strcat(msig, glkpackage);
-            strcat(msig, "/GlkWindow;)V");
-            break;
-        case GLK_CREATECHAN_METHOD:
-            strcpy(msig, "()L");
-            strcat(msig, glkpackage);
-            strcat(msig, "/GlkSChannel;");
-            break;
-        case GLK_CHANNELDESTROY_METHOD:
-            strcpy(msig, "(L");
-            strcat(msig, glkpackage);
-            strcat(msig, "/GlkSChannel;)V");
-            break;
-        case GLKWINDOW_ARRANGE_METHOD:
-            strcpy(msig, "(IIL");
-            strcat(msig, glkpackage);
-            strcat(msig, "/GlkWindow;)V");
-            break;
-        default:
-            strcpy(msig, jni_mcache[i].sig);
-            break;
-        }
+        strcpy(msig, jni_mcache[i].sig);
 
         if (i < MAX_SMETHOD_ID) {
             mid = (*jni_env)->GetStaticMethodID(jni_env, class,

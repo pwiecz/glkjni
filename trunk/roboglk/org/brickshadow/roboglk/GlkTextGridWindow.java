@@ -25,16 +25,19 @@ package org.brickshadow.roboglk;
 public abstract class GlkTextGridWindow extends GlkTextWindow {
     
     /** Does nothing. */
-    public final boolean drawInlineImage(int num, int alignment) {
+	@Override
+    public final boolean drawInlineImage(BlorbResource bres, int alignment) {
         return false;
     }
     
     /** Does nothing. */
-    public final boolean drawInlineImage(int num, int alignment,
+	@Override
+    public final boolean drawInlineImage(BlorbResource bres, int alignment,
             int width, int height) {
         return false;
     }
     
     /** Does nothing. */
+	@Override
     public final void flowBreak() {}
 }

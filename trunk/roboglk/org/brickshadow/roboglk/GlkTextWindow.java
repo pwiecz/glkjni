@@ -24,28 +24,34 @@ package org.brickshadow.roboglk;
  */
 abstract class GlkTextWindow implements GlkWindow {
     
+	@Override
     /** Does nothing. */
     public final void setArrangement(int method, int size,
             GlkWindow key) {}
 
+	@Override
     /** Does nothing. */
-    public final boolean drawImage(int num, int x, int y) {
+    public final boolean drawImage(BlorbResource bres, int x, int y) {
         return false;
     }
     
+	@Override
     /** Does nothing. */
-    public final boolean drawImage(int num, int x, int y, int width,
+    public final boolean drawImage(BlorbResource bres, int x, int y, int width,
             int height) {
         return false;
     }
     
+	@Override
     /** Does nothing. */
     public final void setBackgroundColor(int color) {}
     
+	@Override
     /** Does nothing. */
     public final void eraseRect(int left, int top, int width,
             int height) {}
     
+	@Override
     /** Does nothing. */
     public final void fillRect(int color, int left, int top, int width,
             int height) {}

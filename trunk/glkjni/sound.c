@@ -171,6 +171,7 @@ glui32 glk_schannel_play_ext(schannel_t *chan, glui32 snd, glui32 repeats,
     glui32 notify)
 {
     jboolean res;
+    jobject jres;
 
     if (!chan) {
         gli_strict_warning("schannel_play: invalid id.");
@@ -178,6 +179,11 @@ glui32 glk_schannel_play_ext(schannel_t *chan, glui32 snd, glui32 repeats,
     }
     if ((jint)snd < 0) {
         gli_strict_warning("schannel_play: resource num too large");
+        return FALSE;
+    }
+
+    jres = glkjni_get_blorb_resource(giblorb_ID_Snd, snd);
+    if (!jres) {
         return FALSE;
     }
 
@@ -193,10 +199,11 @@ glui32 glk_schannel_play_ext(schannel_t *chan, glui32 snd, glui32 repeats,
 
     res = (*jni_env)->CallBooleanMethod(
             INSTANCE_M(chan->jchan, GLKCHANNEL_PLAY),
-            (jint)snd, (jint)repeats, (jint)notify);
+            jres, (jint)repeats, (jint)notify);
     if (jni_check_exc()) {
         res = FALSE;
     }
+    DELETE_LOCAL(jres);
 
     return res;
 }
@@ -231,12 +238,19 @@ void glk_schannel_set_volume(schannel_t *chan, glui32 vol)
 void glk_sound_load_hint(glui32 snd, glui32 flag)
 {
     jboolean jflag = (flag ? JNI_TRUE : JNI_FALSE);
+    jobject jres;
 
     if ((jint)snd < 0) {
         gli_strict_warning("sound_load_hint: resource num too large");
         return;
     }
 
-    (*jni_env)->CallVoidMethod(GLK_M(SOUNDHINT), (jint)snd, jflag);
+    jres = glkjni_get_blorb_resource(giblorb_ID_Snd, snd);
+    if (!jres) {
+        return;
+    }
+
+    (*jni_env)->CallVoidMethod(GLK_M(SOUNDHINT), jres, jflag);
+    DELETE_LOCAL(jres);
     jni_check_exc();
 }
