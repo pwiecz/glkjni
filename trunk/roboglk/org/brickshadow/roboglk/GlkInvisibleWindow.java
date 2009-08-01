@@ -22,6 +22,7 @@ import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 
 
+
 /**
  * A base class for pair windows and blank windows. It provides
  * default do-nothing implementations for nearly all of the window

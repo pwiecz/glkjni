@@ -20,6 +20,9 @@ package org.brickshadow.roboglk;
 
 import java.io.File;
 
+import org.brickshadow.roboglk.util.GlkEventQueue;
+
+
 
 /**
  * General bridge methods. See also {@link GlkWindow} and

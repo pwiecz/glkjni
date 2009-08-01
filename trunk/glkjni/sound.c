@@ -227,6 +227,7 @@ void glk_schannel_set_volume(schannel_t *chan, glui32 vol)
     }
     if ((jint)vol < 0 || (jint)vol > 0x10000) {
         gli_strict_warning("schannel_set_volume: volume too loud");
+        return;
     }
 
     (*jni_env)->CallVoidMethod(

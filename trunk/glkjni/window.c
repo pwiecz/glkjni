@@ -34,10 +34,13 @@ window_t *gli_rootwin = NULL;
 static void gli_window_delete(window_t *win)
 {
     DELETE_GLOBAL(win->jwin);
+    win->jwin = NULL;
+    win->key = NULL;
 
     if (win->text) {
         free(win->text->outbuf);
         free(win->text);
+        win->text = NULL;
     }
 }
 
@@ -224,11 +227,13 @@ static window_t *gli_register_window(glui32 type, glui32 rock,
     window_t *win = (window_t *)gli_malloc(sizeof(window_t));
 
     win->rock = rock;
-    win->id = gli_windowid++;
+    win->id = gli_windowid;
+    gli_windowid += 1;
     win->type = type;
     win->parent = NULL;
     win->str = gli_stream_register(strtype_Window, FALSE, TRUE, 0, win);
     win->echostr = NULL;
+    win->key = NULL;
 
     gli_win_set_disprock(win);
 
@@ -240,6 +245,9 @@ static window_t *gli_register_window(glui32 type, glui32 rock,
     }
 
     win->jwin = (*jni_env)->NewGlobalRef(jni_env, jwin);
+    if (!win->jwin) {
+        jni_no_mem();
+    }
     DELETE_LOCAL(jwin);
 
     win->mouse_request = FALSE;
@@ -519,6 +527,8 @@ static void gli_window_list_close(window_t *win)
             temp = dwin->next;
             gli_unregister_window(dwin);
             dwin = temp;
+        } else {
+            dwin = dwin->next;
         }
     }
 }
@@ -566,7 +576,7 @@ glui32 glk_window_get_rock(window_t *win)
 glui32 glk_window_get_type(window_t *win)
 {
     if (!win) {
-        gli_strict_warning("window_get_parent: invalid ref");
+        gli_strict_warning("window_get_type: invalid ref");
         return 0;
     }
     return win->type;
@@ -578,6 +588,7 @@ winid_t glk_window_get_parent(window_t *win)
         gli_strict_warning("window_get_parent: invalid ref");
         return 0;
     }
+
     return win->parent;
 }
 
@@ -791,14 +802,16 @@ void glk_window_set_arrangement(window_t *win, glui32 method, glui32 size,
             gli_strict_warning("window_set_arrangement: keywin cannot be a Pair");
             return;
         }
-        for (wx=key; wx; wx=wx->parent) {
-            if (wx == win)
+        for (wx = key; wx; wx = wx->parent) {
+            if (wx == win && wx != key)
                 break;
         }
         if (wx == NULL) {
             gli_strict_warning("window_set_arrangement: keywin must be a descendant");
             return;
         }
+    } else {
+        key = win->key;
     }
 
     newdir = method & winmethod_DirMask;
@@ -806,10 +819,6 @@ void glk_window_set_arrangement(window_t *win, glui32 method, glui32 size,
 
     olddir = win->split_method & winmethod_DirMask;
     oldvertical = (olddir == winmethod_Left || olddir == winmethod_Right);
-
-    if (!key) {
-        key = win->key;
-    }
 
     if ((newvertical && !oldvertical) || (!newvertical && oldvertical)) {
         if (!oldvertical) {
@@ -823,6 +832,12 @@ void glk_window_set_arrangement(window_t *win, glui32 method, glui32 size,
     if (key && key->type == wintype_Blank
         && (method & winmethod_DivisionMask) == winmethod_Fixed) {
         gli_strict_warning("window_set_arrangement: a Blank window cannot have a fixed size");
+        return;
+    }
+
+    if (win->split_method == method
+            && win->key == key
+            && win->constraint == (jint)size) {
         return;
     }
 

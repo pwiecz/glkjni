@@ -15,21 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.brickshadow.roboglk;
+package org.brickshadow.roboglk.io;
 
 
-public class BlorbResource {
-
-	public final int num;
-	public final int start;
-	public final int len;
-	public final int type;
-	
-	public BlorbResource(int num, int start, int len, int type) {
-		this.num = num;
-		this.start = start;
-		this.len = len;
-		this.type = type;
-	}
-	
-}
+public class StyleMeasurementException extends RuntimeException {}

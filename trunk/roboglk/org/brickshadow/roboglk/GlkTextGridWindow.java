@@ -17,14 +17,20 @@
 
 package org.brickshadow.roboglk;
 
+import org.brickshadow.roboglk.io.TextIO;
+import org.brickshadow.roboglk.util.GlkEventQueue;
 
-/**
- * The base class for text grid windows. It provides do-nothing
- * implementations of window methods not applicable to text grid windows.
- */
-public abstract class GlkTextGridWindow extends GlkTextWindow {
+import android.app.Activity;
+
+
+public class GlkTextGridWindow extends GlkTextWindow {
     
-    /** Does nothing. */
+    public GlkTextGridWindow(Activity activity, GlkEventQueue queue, TextIO io,
+			int id) {
+		super(activity, queue, io, id);
+	}
+
+	/** Does nothing. */
 	@Override
     public final boolean drawInlineImage(BlorbResource bres, int alignment) {
         return false;
@@ -40,4 +46,9 @@ public abstract class GlkTextGridWindow extends GlkTextWindow {
     /** Does nothing. */
 	@Override
     public final void flowBreak() {}
+
+	@Override
+	public void moveCursor(int xpos, int ypos) {
+		// TODO Auto-generated method stub
+	}
 }
