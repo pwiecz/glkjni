@@ -17,6 +17,7 @@
 
 package org.brickshadow.roboglk;
 
+
 /**
  * A Glk sound channel
  */

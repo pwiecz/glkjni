@@ -1,13 +1,36 @@
-package org.brickshadow.roboglk.window;
+/* This file is a part of roboglk.
+ * Copyright (c) 2009 Edward McCardell
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package org.brickshadow.roboglk.io;
 
 
-import org.brickshadow.roboglk.window.RoboTextBufferWindow;
+import org.brickshadow.roboglk.GlkStyle;
+import org.brickshadow.roboglk.GlkTextBufferWindow;
+import org.brickshadow.roboglk.io.StyleManager.StyleSpan;
+import org.brickshadow.roboglk.view.TextBufferView;
 
+import android.os.Handler;
 import android.text.Editable;
 import android.text.Selection;
 import android.text.Spannable;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
+import android.widget.TextView.BufferType;
 
 
 public class TextBufferIO extends TextIO {
@@ -17,6 +40,10 @@ public class TextBufferIO extends TextIO {
     private int moreLines;
     private int inputLineStart;
     
+    private int currentStyle;
+    private int baseBgColor;
+    private boolean isReverse;
+    private StyleManager.StyleSpan[] currentSpans;
     
     private static int HISTORYLEN = 25;
     private char[][] history;
@@ -25,15 +52,73 @@ public class TextBufferIO extends TextIO {
     private int historyStart;
     private int historyEnd;
     
-    public TextBufferIO(final TextBufferView tv) {
-    	super(tv);
+    public TextBufferIO(TextBufferView tv, StyleManager styleMan) {
+    	super(tv, styleMan);
+    	
     	history = new char[HISTORYLEN][];
     	historyPos = -1;
+    	currentSpans = StyleManager.getNullSpans();
+    	
+    	Handler handler = tv.getHandler();
+		if (handler == null) {
+			initView();
+		} else {
+			handler.post(new Runnable() {
+				@Override
+				public void run() {
+					initView();
+				}
+			});
+		}
     }
+    
+    private void initView() {
+    	StyleSpan[] spans =
+    		styleMan.getSpans(GlkStyle.Normal, 0, false, currentSpans);
+    	
+    	baseBgColor = StyleManager.getIntBgColor(spans);
+    	Log.e("initview", "bg color = " + baseBgColor);
+    	tv.setBackgroundColor(StyleManager.getIntBgColor(spans));
+    	
+    	/* 
+		 * TODO: remember that when style hints are supported, this
+		 *       size change will have to be made when style_Normal is
+		 *       assigned a new size.
+		 */
+		tv.setTextSize(StyleManager.getIntTextSize(spans));
+		
+		tv.setText("", BufferType.EDITABLE);
+		styleMan.applyStyle(GlkStyle.Normal, false, currentSpans,
+				baseBgColor, tv.getEditableText());
+		currentStyle = GlkStyle.Normal;
+    }
+    
+    @Override
+	public void doStyle(int style) {
+    	if (style == currentStyle) {
+    		return;
+    	}
+    	if (!styleMan.distinguishStyles(style, currentStyle)) {
+    		return;
+    	}
+    	styleMan.applyStyle(style, isReverse, currentSpans,
+    			baseBgColor, tv.getEditableText());
+    	currentStyle = style;
+    }
+    
+    public void doReverseVideo(boolean reverse) {
+		if (reverse == isReverse) {
+			return;
+		}
+		isReverse = reverse;
+		
+		styleMan.applyStyle(currentStyle, isReverse, currentSpans,
+    			baseBgColor, tv.getEditableText());
+	}
     
     protected boolean onViewKey(View v, int keyCode, KeyEvent event) {
         if (morePrompt && (event.getAction() == KeyEvent.ACTION_DOWN)) {
-            int viewLines = getViewLines();
+            int viewLines = tv.getNumLines();
             int scrollLines =
                 ((moreLines > viewLines) ? viewLines : moreLines);
             tv.scrollBy(0, scrollLines * tv.getLineHeight());
@@ -50,7 +135,7 @@ public class TextBufferIO extends TextIO {
         return super.onViewKey(v, keyCode, event);
     }
     
-    public void setWindow(RoboTextBufferWindow win) {
+    public void setWindow(GlkTextBufferWindow win) {
         this.win = win;
     }
     
@@ -98,7 +183,7 @@ public class TextBufferIO extends TextIO {
     private boolean needsMorePrompt(int linesAdded) {
         linesSinceInput += linesAdded;
         
-        int viewLines = getViewLines();
+        int viewLines = tv.getNumLines();
         // TODO: maybe >= instead? or >= viewLines - 1 ?
         if (linesSinceInput > viewLines) {
             moreLines = linesSinceInput - viewLines;
@@ -153,7 +238,7 @@ public class TextBufferIO extends TextIO {
     /* TODO: This will have to take clear() into account. */
     private int computeInputLineStart() {
         int lineCount = tv.getLineCount();
-        int viewLines = getViewLines();
+        int viewLines = tv.getNumLines();
         if (lineCount < viewLines) {
             return lineCount;
         } else {
@@ -164,16 +249,6 @@ public class TextBufferIO extends TextIO {
     @Override
     public final void doPrint(String str) {
         textBufPrint(str);
-    }
-
-    /**
-     * The default implementation returns (0, 0). Subclasses should
-     * override this and calculate the size with respect to the font
-     * used for {@code GlkStyle.Normal}.
-     */
-    @Override
-    public int[] getWindowSize() {
-        return new int[] { 0, 0 };
     }
 
     private boolean isLastHistory() {
@@ -273,20 +348,6 @@ public class TextBufferIO extends TextIO {
 	/*
      * The following may become abstract or move up to TextIO?.
      */
-    
-    @Override
-    public void doStyle(int style) {}
-    
-    @Override
-    public boolean doDistinguishStyles(int styl1, int styl2) {
-    	return false;
-    }
-    
-    @Override
-    public int doMeasureStyle(int styl, int hint)
-    		throws StyleMeasurementException {
-    	throw new StyleMeasurementException();
-    }
 
     @Override
     public void doClear() {}

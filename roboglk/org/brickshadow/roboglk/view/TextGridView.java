@@ -15,21 +15,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.brickshadow.roboglk;
+package org.brickshadow.roboglk.view;
 
 
-public class BlorbResource {
 
-	public final int num;
-	public final int start;
-	public final int len;
-	public final int type;
-	
-	public BlorbResource(int num, int start, int len, int type) {
-		this.num = num;
-		this.start = start;
-		this.len = len;
-		this.type = type;
+import android.content.Context;
+import android.util.AttributeSet;
+
+
+public class TextGridView extends TextWindowView {
+
+	public TextGridView(Context context) {
+		super(context);
 	}
 	
+	public TextGridView(Context context, AttributeSet attrs) {
+		super(context, attrs);
+	}
+	
+	public TextGridView(Context context, AttributeSet attrs, int defStyle) {
+		super(context, attrs, defStyle);
+	}
+
 }

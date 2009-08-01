@@ -22,6 +22,7 @@ import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 
 
+
 /**
  * The base class for graphics windows. It provides do-nothing
  * implementations of window methods not applicable to graphics windows.

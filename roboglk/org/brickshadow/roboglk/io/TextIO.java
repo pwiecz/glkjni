@@ -1,7 +1,26 @@
-package org.brickshadow.roboglk.window;
+/* This file is a part of roboglk.
+ * Copyright (c) 2009 Edward McCardell
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package org.brickshadow.roboglk.io;
 
 
 import org.brickshadow.roboglk.GlkStyle;
+import org.brickshadow.roboglk.AbstractGlkTextWindow;
+import org.brickshadow.roboglk.view.TextWindowView;
 
 import android.text.Editable;
 import android.text.Selection;
@@ -11,12 +30,12 @@ import android.view.KeyEvent;
 import android.view.View;
 
 
-abstract class TextIO {
+public abstract class TextIO {
 
 	/**
      * The glk window wrapper associated with a view.
      */
-    protected RoboTextWindow win;
+    protected AbstractGlkTextWindow win;
     
     protected final TextWindowView tv;
     
@@ -37,8 +56,14 @@ abstract class TextIO {
     private boolean lineInput;
     private final TextKeyListener listener;
     
-    TextIO(TextWindowView tv) {
+    /**
+     * The style manager.
+     */
+    protected final StyleManager styleMan;
+    
+    TextIO(TextWindowView tv, StyleManager styleMan) {
     	this.tv = tv;
+    	this.styleMan = styleMan;
     	currInputLength = 0;
     	
     	listener = TextKeyListener.getInstance(false, 
@@ -64,19 +89,14 @@ abstract class TextIO {
      * 
      * @return a two-element array with the width and height of the window
      */
-    public abstract int[] getWindowSize();
-    
-    void setWindow(RoboTextWindow win) {
-        this.win = win;
+    public final int[] getWindowSize() {
+    	synchronized(tv) {
+    		return new int[] { tv.getNumLines(), tv.getCharsPerLine() };
+    	}
     }
     
-	/**
-     * Called by the glk window wrapper to arrange for the window size
-     * to be returned to the interpreter thread.
-     */
-    public final void requestWindowSize() {
-        int[] size = getWindowSize();
-        win.setSize(size[0], size[1]);
+    public void setWindow(AbstractGlkTextWindow win) {
+        this.win = win;
     }
     
     /**
@@ -85,6 +105,7 @@ abstract class TextIO {
      * or {@link #sendKeyToGlk(int)}, without echoing the key to the screen.
      */
     public void doCharInput() {
+    	requestInputFocus();
         charInput = true;
         lineInput = false;
     }
@@ -128,6 +149,7 @@ abstract class TextIO {
      */
     public void stopCharInput() {
         charInput = false;
+        relinquishInputFocus();
     }
     
     /**
@@ -154,7 +176,9 @@ abstract class TextIO {
      */
     public void doLineInput(boolean unicode, int maxlen,
             char[] initialChars) {
-        
+    	
+    	requestInputFocus();
+    	
         inputChars = new char[maxlen];
         
         if (initialChars != null) {
@@ -190,10 +214,10 @@ abstract class TextIO {
      * of communicating the current input length back to the glk window
      * wrapper and then calls {@link #stopLineInput()}.
      */
-    public final void stopLineInputAndGetLength() {
+    public final int stopLineInputAndGetLength() {
         win.recordLine(inputChars, currInputLength, false);
-        win.setCurrInputLength(currInputLength);
         stopLineInput();
+        return currInputLength;
     }
 
     /**
@@ -201,6 +225,20 @@ abstract class TextIO {
      */
     public void stopLineInput() {
         lineInput = false;
+        relinquishInputFocus();
+    }
+    
+    private void requestInputFocus() {
+    	if (!tv.hasFocus()) {
+    		// TODO: remember which window does have focus
+    		tv.requestFocus();
+    	}
+    }
+    
+    private void relinquishInputFocus() {
+    	if (tv.hasFocus()) {
+    		// TODO: restore focus to previous win if any
+    	}
     }
     
     /**
@@ -221,18 +259,6 @@ abstract class TextIO {
      * @param style one of the {@link GlkStyle} constants
      */
     public abstract void doStyle(int style);
-    
-    /**
-     * Returns true if the styles are visually distinct in the window.
-     */
-    public abstract boolean doDistinguishStyles(int styl1, int styl2);
-    
-    /**
-     * Returns a measurement appropriate for the style and hint, or
-     * throws a {@code StyleMeasurementException}.
-     */
-    public abstract int doMeasureStyle(int styl, int hint)
-    throws StyleMeasurementException;
     
     protected boolean onViewKey(View v, int keyCode, KeyEvent event) {
     	if (!charInput && !lineInput) {
@@ -355,33 +381,33 @@ abstract class TextIO {
     
     protected abstract void extendHistory();
     
-    /* TODO: account for padding? */
-    protected final int getViewLines() {
-        return tv.getHeight() / tv.getLineHeight();
-    }
-    
     protected abstract void textEcho(CharSequence str);
     
     protected abstract void textEchoNewline();
-
-    /**
-     * Called by the glk window wrapper to find out if two styles
-     * are visually distinct in the view.
-     */
-	public final void requestStyleDistinguish(int styl1, int styl2) {
-		boolean distinct = doDistinguishStyles(styl1, styl2);
-		win.setStyleDistinguish(distinct);
+	
+	public final int measureStyle(int style, int hint) {
+		synchronized(styleMan) {
+			return styleMan.measureStyle(style, hint);
+		}
 	}
 	
-	public final void requestStyleMeasure(int styl, int hint) {
-		int val = 0;
-		boolean success = false;
-		
-		try {
-			val = doMeasureStyle(styl, hint);
-			success = true;
-		} catch (StyleMeasurementException e) {}
-		
-		win.setStyleMeasure(success, val);
+	public final boolean distinguishStyles(int style1, int style2) {
+		synchronized(styleMan) {
+			return styleMan.distinguishStyles(style1, style2);
+		}
+	}
+
+	public int getLinesSize(int numLines, int maxSize) {
+		int lineHeight = tv.getLineHeight();
+		while ((numLines * lineHeight) > maxSize) {
+			numLines -= 1;
+		}
+		return numLines * lineHeight;
+	}
+
+	public int getCharsSize(int numChars, int maxSize) {
+		// TODO: figure this out for when left/right splits
+		//       are needed.
+		return 0;
 	}
 }

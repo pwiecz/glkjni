@@ -21,6 +21,7 @@ package org.brickshadow.roboglk;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 
+
 /**
  * A Glk window.
  * <p>
@@ -396,4 +397,14 @@ public interface GlkWindow {
      * @return the window id of the window.
      */
     int getId();
+    
+    /**
+     * Returns the pixel size of the given fixed constraint
+     * @param constraint the requested size set by
+     *     {@link Glk#windowOpen(GlkWindow, int, int, int, int, GlkWindow[])}
+     * @param dir the split direction set by
+     *     {@link Glk#windowOpen(GlkWindow, int, int, int, int, GlkWindow[])}
+     * @return the pixel size of the constraint
+     */
+    int getSizeFromConstraint(int constraint, boolean vertical, int maxSize);
 }

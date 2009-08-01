@@ -15,9 +15,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.brickshadow.roboglk;
+package org.brickshadow.roboglk.util;
+
 
 import java.util.LinkedList;
+
+import org.brickshadow.roboglk.Glk;
+import org.brickshadow.roboglk.GlkEventType;
+import org.brickshadow.roboglk.GlkSChannel;
+import org.brickshadow.roboglk.GlkWindow;
 
 import android.os.Message;
 
@@ -42,6 +48,7 @@ public class GlkEventQueue {
     private LinkedList<Message> selectQueue = new LinkedList<Message>();
     private LinkedList<Message> pollQueue = new LinkedList<Message>();
     private boolean hasTimerEvent = false;
+    private UISync uiWait = UISync.getInstance();
     
     /**
      * Translates an event message into the form required by
@@ -195,12 +202,14 @@ public class GlkEventQueue {
      * 
      * @return an event message or {@code null}
      */
-    public synchronized Message poll() {
-        Message msg = pollQueue.poll();
-        if (msg != null && msg.what == GlkEventType.Timer) {
-            hasTimerEvent = false;
-        }
-        return msg;
+    public Message poll() {
+    	synchronized(uiWait) {
+    		Message msg = pollQueue.poll();
+    		if (msg != null && msg.what == GlkEventType.Timer) {
+    			hasTimerEvent = false;
+    		}
+    		return msg;
+    	}
     }
     
     /**
@@ -209,27 +218,31 @@ public class GlkEventQueue {
      * 
      * @return an event message 
      */
-    public synchronized Message select() {
-        try {
-            while (selectQueue.isEmpty() && pollQueue.isEmpty()) {
-                wait();
-            }
+    public Message select() {
+    	synchronized(uiWait) {
+    		try {
+    			while (selectQueue.isEmpty() && pollQueue.isEmpty()) {
+    				//Log.w("SELECT", "before wait");
+    				uiWait.wait();
+    				//Log.w("SELECT", "after wait");
+    			}
 
-            Message msg;
-            msg = selectQueue.poll();
-            if (msg == null) {
-                msg = pollQueue.poll();
-            }
+    			Message msg;
+    			msg = selectQueue.poll();
+    			if (msg == null) {
+    				msg = pollQueue.poll();
+    			}
 
-            if (msg != null && (msg.what == GlkEventType.Timer)) {
-                hasTimerEvent = false;
-            }
+    			if (msg != null && (msg.what == GlkEventType.Timer)) {
+    				hasTimerEvent = false;
+    			}
             
-            return msg;
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return null;
-        }
+    			return msg;
+    		} catch (InterruptedException e) {
+    			Thread.currentThread().interrupt();
+    			return null;
+    		}
+    	}
     }
     
     /**
@@ -237,30 +250,32 @@ public class GlkEventQueue {
      * 
      * @param msg an event message.
      */
-    public synchronized void putEvent(Message msg) {
-        boolean wasEmpty = selectQueue.isEmpty() && pollQueue.isEmpty();
+    public void putEvent(Message msg) {
+    	synchronized(uiWait) {
+    		boolean wasEmpty = selectQueue.isEmpty() && pollQueue.isEmpty();
         
-        switch (msg.what) {
-        case GlkEventType.Arrange:
-        case GlkEventType.Redraw:
-        case GlkEventType.SoundNotify:
-            pollQueue.add(msg);
-            break;
-        case GlkEventType.Timer:
-            if (!hasTimerEvent) {
-                pollQueue.add(msg);
-                hasTimerEvent = true;
-            } else {
-                return;
-            }
-            break;
-        default:
-            selectQueue.add(msg);
-            break;
-        }
+    		switch (msg.what) {
+    		case GlkEventType.Arrange:
+    		case GlkEventType.Redraw:
+    		case GlkEventType.SoundNotify:
+    			pollQueue.add(msg);
+    			break;
+    		case GlkEventType.Timer:
+    			if (!hasTimerEvent) {
+    				pollQueue.add(msg);
+    				hasTimerEvent = true;
+    			} else {
+    				return;
+    			}
+    			break;
+    		default:
+    			selectQueue.add(msg);
+    			break;
+    		}
         
-        if (wasEmpty) {
-            notify();
-        }
+    		if (wasEmpty) {
+    			uiWait.notify();
+    		}
+    	}
     }
 }

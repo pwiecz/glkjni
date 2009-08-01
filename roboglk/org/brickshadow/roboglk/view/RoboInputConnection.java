@@ -15,41 +15,29 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.brickshadow.roboglk;
+package org.brickshadow.roboglk.view;
 
 
-import org.brickshadow.roboglk.io.TextIO;
-import org.brickshadow.roboglk.util.GlkEventQueue;
+import android.view.KeyEvent;
+import android.view.View;
+import android.view.inputmethod.BaseInputConnection;
+import android.view.inputmethod.InputConnection;
 
-import android.app.Activity;
 
+public class RoboInputConnection extends BaseInputConnection implements InputConnection {
 
-public class GlkTextBufferWindow extends GlkTextWindow {
-    
-    public GlkTextBufferWindow(Activity activity, GlkEventQueue queue,
-			TextIO io, int id) {
-		super(activity, queue, io, id);
-	}
-
-	/** Does nothing. */
-    public final void moveCursor(int xpos, int ypos) {}
-
-	@Override
-	public boolean drawInlineImage(BlorbResource bres, int alignment) {
-		// TODO: inline image support
-		return false;
+	public RoboInputConnection(View targetView, boolean fullEditor) {
+		super(targetView, fullEditor);
 	}
 
 	@Override
-	public boolean drawInlineImage(BlorbResource bres, int alignment,
-			int width, int height) {
-		// TODO: inline image support
-		return false;
+	public boolean sendKeyEvent(KeyEvent event) {
+		return super.sendKeyEvent(event);
 	}
 
 	@Override
-	public void flowBreak() {
-		// TODO: inline image support
-		
+	public boolean performEditorAction(int editorAction) {
+		sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER));
+		return super.performEditorAction(editorAction);
 	}
 }
