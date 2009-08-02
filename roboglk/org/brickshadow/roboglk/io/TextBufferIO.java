@@ -18,19 +18,14 @@
 package org.brickshadow.roboglk.io;
 
 
-import org.brickshadow.roboglk.GlkStyle;
 import org.brickshadow.roboglk.GlkTextBufferWindow;
-import org.brickshadow.roboglk.io.StyleManager.StyleSpan;
 import org.brickshadow.roboglk.view.TextBufferView;
 
-import android.os.Handler;
 import android.text.Editable;
 import android.text.Selection;
 import android.text.Spannable;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
-import android.widget.TextView.BufferType;
 
 
 public class TextBufferIO extends TextIO {
@@ -39,11 +34,6 @@ public class TextBufferIO extends TextIO {
     private int linesSinceInput;
     private int moreLines;
     private int inputLineStart;
-    
-    private int currentStyle;
-    private int baseBgColor;
-    private boolean isReverse;
-    private StyleManager.StyleSpan[] currentSpans;
     
     private static int HISTORYLEN = 25;
     private char[][] history;
@@ -57,63 +47,15 @@ public class TextBufferIO extends TextIO {
     	
     	history = new char[HISTORYLEN][];
     	historyPos = -1;
-    	currentSpans = StyleManager.getNullSpans();
-    	
-    	Handler handler = tv.getHandler();
-		if (handler == null) {
-			initView();
-		} else {
-			handler.post(new Runnable() {
-				@Override
-				public void run() {
-					initView();
-				}
-			});
-		}
-    }
-    
-    private void initView() {
-    	StyleSpan[] spans =
-    		styleMan.getSpans(GlkStyle.Normal, 0, false, currentSpans);
-    	
-    	baseBgColor = StyleManager.getIntBgColor(spans);
-    	Log.e("initview", "bg color = " + baseBgColor);
-    	tv.setBackgroundColor(StyleManager.getIntBgColor(spans));
-    	
-    	/* 
-		 * TODO: remember that when style hints are supported, this
-		 *       size change will have to be made when style_Normal is
-		 *       assigned a new size.
-		 */
-		tv.setTextSize(StyleManager.getIntTextSize(spans));
-		
-		tv.setText("", BufferType.EDITABLE);
-		styleMan.applyStyle(GlkStyle.Normal, false, currentSpans,
-				baseBgColor, tv.getEditableText());
-		currentStyle = GlkStyle.Normal;
     }
     
     @Override
 	public void doStyle(int style) {
-    	if (style == currentStyle) {
-    		return;
-    	}
-    	if (!styleMan.distinguishStyles(style, currentStyle)) {
-    		return;
-    	}
-    	styleMan.applyStyle(style, isReverse, currentSpans,
-    			baseBgColor, tv.getEditableText());
-    	currentStyle = style;
+    	styleMan.applyStyle(style, tv.getEditableText());
     }
     
     public void doReverseVideo(boolean reverse) {
-		if (reverse == isReverse) {
-			return;
-		}
-		isReverse = reverse;
-		
-		styleMan.applyStyle(currentStyle, isReverse, currentSpans,
-    			baseBgColor, tv.getEditableText());
+		styleMan.applyStyle(reverse, tv.getEditableText());
 	}
     
     protected boolean onViewKey(View v, int keyCode, KeyEvent event) {
