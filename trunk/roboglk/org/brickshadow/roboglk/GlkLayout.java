@@ -93,6 +93,9 @@ public class GlkLayout extends AbsoluteLayout {
 	protected final Activity activity;
 	protected GlkEventQueue queue;
 	
+	protected StyleManager.Style[] bufferStyles;
+	protected StyleManager.Style[] gridStyles;
+	
 	public GlkLayout(Activity activity) {
 		super(activity);
 		this.activity = activity;
@@ -102,6 +105,8 @@ public class GlkLayout extends AbsoluteLayout {
 	
 	public void initialize(GlkEventQueue queue) {
 		this.queue = queue;
+		bufferStyles = StyleManager.newDefaultStyles();
+		gridStyles = StyleManager.newDefaultStyles();
 		if (root != null) {
 			root.close(this);
 		}
@@ -196,13 +201,43 @@ public class GlkLayout extends AbsoluteLayout {
 			//tbview.requestFocus();
 			GlkTextBufferWindow tbwin = new GlkTextBufferWindow(
 					activity, queue,
-					new TextBufferIO(tbview, new StyleManager()),
+					new TextBufferIO(tbview, new StyleManager(bufferStyles)),
 					id);
 			return new Group(tbwin, tbview);
 		default:
 			// TODO: change when other window types added
 			return null;
 		}
+	}
+
+	public void setStyleHint(int wintype, int styl, int hint, int val) {
+		switch (wintype) {
+		case GlkWinType.AllTypes:
+			setStyleHint(bufferStyles, styl, hint, val);
+			setStyleHint(gridStyles, styl, hint, val);
+			break;
+		case GlkWinType.TextBuffer:
+			setStyleHint(bufferStyles, styl, hint, val);
+			break;
+		case GlkWinType.TextGrid:
+			setStyleHint(gridStyles, styl, hint, val);
+			break;
+		default:
+			throw new IllegalArgumentException();
+		}
+	}
+	
+	private void setStyleHint(StyleManager.Style[] styles, int style,
+			int hint, int val) {
+
+		if (style >= StyleManager.NUM_STYLES || style == GlkStyle.Normal) {
+			return;
+		}
+		if (style == GlkStyle.Preformatted
+				&& hint == GlkStyleHint.Proportional) {
+			return;
+		}
+		styles[style].setHint(hint, val);
 	}
 }
 

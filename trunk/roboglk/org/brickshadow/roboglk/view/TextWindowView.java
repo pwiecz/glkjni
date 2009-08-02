@@ -35,6 +35,9 @@ public abstract class TextWindowView extends TextView {
 	
 	public TextWindowView(Context context) {
 		super(context);
+		setText("", BufferType.EDITABLE);
+		setBackgroundColor(0xFFFFFFFF); // TODO: coordinate with prefs
+		setTextColor(0xFF000000);		// TODO: coordinate with prefs
 	}
 	
 	public TextWindowView(Context context, AttributeSet attrs) {
