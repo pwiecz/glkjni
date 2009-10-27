@@ -17,9 +17,6 @@
 
 package org.brickshadow.roboglk.view;
 
-import com.google.code.twisty.R;
-
-import android.content.res.Resources;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.graphics.Color;
