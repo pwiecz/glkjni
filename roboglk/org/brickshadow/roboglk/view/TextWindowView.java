@@ -17,10 +17,12 @@
 
 package org.brickshadow.roboglk.view;
 
+import com.google.code.twisty.R;
 
-
+import android.content.res.Resources;
 import android.content.Context;
 import android.content.res.Configuration;
+import android.graphics.Color;
 import android.util.AttributeSet;
 import android.view.KeyEvent;
 import android.view.inputmethod.EditorInfo;
@@ -36,8 +38,9 @@ public abstract class TextWindowView extends TextView {
 	public TextWindowView(Context context) {
 		super(context);
 		setText("", BufferType.EDITABLE);
-		setBackgroundColor(0xFFFFFFFF); // TODO: coordinate with prefs
+		setBackgroundColor(Color.argb(0xFF, 0xFE, 0xFF, 0xCC)); // TODO: coordinate with prefs
 		setTextColor(0xFF000000);		// TODO: coordinate with prefs
+		setTextSize(12);                // TODO: coordinate with prefs
 	}
 	
 	public TextWindowView(Context context, AttributeSet attrs) {

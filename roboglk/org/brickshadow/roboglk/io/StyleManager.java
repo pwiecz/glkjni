@@ -53,7 +53,7 @@ public class StyleManager {
 	
 	public static class Style {
 		boolean proportional = true;
-		int size = 0;
+		int size = 0;           // TODO: coordinate with prefs
 		int foreColor = BLACK;	// TODO: coordinate with prefs
 		int backColor = WHITE;	// TODO: coordinate with prefs
 		boolean reverse = false;
@@ -171,6 +171,7 @@ public class StyleManager {
 				break;
 			case GlkStyleHint.Size:
 				// TODO: convert -4/4 to correct scale factors
+				size = val;
 				break;
 			case GlkStyleHint.TextColor:
 				foreColor = 0xFF000000 | val;
